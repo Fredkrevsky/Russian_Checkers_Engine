@@ -1,33 +1,61 @@
 #pragma once
-#include "Tree.h"
+
+#include "AT.h"
 
 //¬рем€ обработки одного узла = 5.61224 * 10^(-6) секунд
 
-//¬рем€ просчета дл€ глубин
-//1:   < 1 мс
-//2:   < 1 мс
-//3:   1 - 5 мс
-//4:   5 - 20 мс
-//5:   20 - 200 мс
-//6:   200 мс - 2 с
-//7:   2 - 15 с
+//¬рем€ просчета дл€ глубин       AT
+//1:   < 1 мс                     < 1 мс     
+//2:   < 1 мс                     < 1 мс
+//3:   1 - 5 мс                   < 1 мс
+//4:   5 - 20 мс                  2 - 15 мс 
+//5:   20 - 200 мс                5 - 30 мс
+//6:   200 мс - 2 с               30 - 100 мс
+//7:   2 - 15 с                   100 - 200 мс
 //8:   15 с - 2 мин 
+//9:   2+ мин
+//10:  12+ мин
+
+
+enum MOVE_RESULT {
+    INVALID_COORD,
+    ONE_MORE,
+    SUCCESS,
+    WIN,
+    DRAW,
+    LOSE,
+};
+
+enum MOVE_ASSES {
+    COMPULSORY,
+    BRILLIANT,
+    STRONGEST,
+    NORMAL,
+    MISTAKE,
+    BLUNDER
+};
 
 class Engine {
 private:
     mytype depth;
     bool turn;
-    mytype moves;
-    mytype pieces;
-    Tree* firstroot;
-    Tree* root;
-    float GetNumber(mytype depth);
+    bool isActual;
+    MOVE_TYPE type;
+    mytype vector;
+    mytype x, y;
+    MOVE_ASSES getStatus(mytype index, float old);
+    float oldasses;
+    bool isSorted;
 public:
-    Board MainBoard;
+    Moves moves;
+    int duration;
+    Board board;
     float asses;
     Engine(mytype depth);
     ~Engine();
-    mytype PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2);
-    mytype EngineMove();
+    MOVE_ASSES status;
+    float accuracy;
+    MOVE_RESULT PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2);
+    MOVE_RESULT EngineMove();
 };
 

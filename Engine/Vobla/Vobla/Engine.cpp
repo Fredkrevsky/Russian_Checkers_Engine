@@ -1,80 +1,151 @@
 #include "Engine.h"
-#include "math.h"
+#include <chrono>
 
 const mytype WIDTH = 5;
 
-float Engine::GetNumber(mytype depth) {
-	return exp((depth - 1) * log(8.31794));
+#define CHEAT
+
+MOVE_ASSES Engine::getStatus(mytype index, float old) {
+	if (moves.getLen() == 1) {
+		return COMPULSORY;
+	}
+	if (index == 0) {
+		return STRONGEST;
+	}
+	if (old - asses < 0.3 && turn || old - asses > -0.3 && !turn) {
+		return NORMAL;
+	}
+	if (old - asses < 0.9 && turn || old - asses > -0.9 && !turn) {
+		return MISTAKE;
+	}
+	return BLUNDER;
 }
-Engine::Engine(mytype depth) {
-	moves = 0;
-	pieces = 24;
+Engine::Engine(mytype dep) {
 	turn = true;
 	asses = 0.0;
-	Coord arr = { 0 };
-	root = new Tree(arr, MainBoard, turn);
-	firstroot = root;
-	this->depth = depth;
-	root->FillMoves(depth);
+	depth = dep;
+
+	type = MOVE;
+	vector = 0;
+	isActual = false;
+
+	x = 0;
+	y = 0;
+	duration = 0;
+	accuracy = 1;
+	status = COMPULSORY;
+	oldasses = 0;
+	isSorted = false;
 }
-Engine::~Engine() {
-	delete firstroot;
+Engine::~Engine() {		
+
 }
-mytype Engine::PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2) {
-	if (moves == 15) {
-		return 0;
+MOVE_RESULT Engine::PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2) {
+	if (!isActual) {
+		moves.fill(board, type, x, y, vector, turn);
+		isActual = true;
 	}
-	mytype index = root->exsists(x1, y1, x2, y2);
-	if (index == -1) {
-		return -1;
+	mytype index = moves.find(x1, y1, x2, y2);
+	if (index != -1) {
+		x = x2;
+		y = y2;
+		if (moves.ntb) {
+			type = BEAT;
+			if (board.Field[x1][y1] >= 3) {
+				board.DamkaBeat(x1, y1, x2, y2, vector);
+			}
+			else {
+				board.Beat(x1, y1, x2, y2);
+			}
+			vector = GetMode(x1, y1, x2, y2, vector);
+
+#ifndef CHEAT
+			asses = moves.moves[index].asses;
+			status = getStatus(index, oldasses);
+			oldasses = asses;
+#endif		
+
+			moves.fill(board, type, x, y, vector, turn);
+			isActual = true;
+
+			if (moves.ntb) {
+				return ONE_MORE;
+			}
+		}
+		else {
+			board.Move(x1, y1, x2, y2);
+#ifndef CHEAT
+			asses = moves.moves[index].asses;
+			status = getStatus(index, oldasses);
+			oldasses = asses;
+#endif
+		}
+
+		turn = !turn;
+		type = MOVE;
+		vector = 0;
+		isActual = false;
+		return SUCCESS;
 	}
-	root->deleteExcept(index);
-	root = root->children[index];
-	MainBoard = root->MainBoard;
-	asses = root->asses;
-	if ((root->childCount != 0) && (root->turn == this->turn)) {
-		return -1;
-	}
-	turn = !turn;
-	return 1;
+	return INVALID_COORD;
 }
-mytype Engine::EngineMove() {
-	if (root->childCount == 0) {
-		return -1;
-	}
-	root->sort();
-	mytype temp = WIDTH;
-	if (temp > root->childCount) {
-		temp = root->childCount;
-	}
-	for (mytype i = 0; i < 2 * depth; i++) {
-		if (root->NumberOfNodes() > GetNumber(depth)) {
+MOVE_RESULT Engine::EngineMove() {
+	MOVE_RESULT result = LOSE;
+	std::chrono::high_resolution_clock::time_point start_time = std::chrono::high_resolution_clock::now();
+	while (true) {
+		moves.fill(board, type, x, y, vector, turn);
+		if (moves.getLen() > 0) {
+			result = SUCCESS;
+			moves.sort(board, type, x, y, vector, depth - board.amountOfDamka() / 2, turn);
+			asses = moves.moves[0].asses;
+			mytype* coord = moves.getCoord(0);
+			mytype x1, y1, x2, y2;
+			x1 = coord[0];
+			y1 = coord[1];
+			x2 = coord[2];
+			y2 = coord[3];
+			x = x2;
+			y = y2;
+			if (moves.ntb) {
+				type = BEAT;
+				if (board.Field[x1][y1] >= 3) {
+					board.DamkaBeat(x1, y1, x2, y2, vector);
+				}
+				else {
+					board.Beat(x1, y1, x2, y2);
+				}
+				vector = GetMode(x1, y1, x2, y2, vector);
+			}
+			else {
+				board.Move(x1, y1, x2, y2);
+				break;
+			}
+		}
+		else {
 			break;
 		}
-		for (mytype j = 0; j < temp; j++) {
-			root->children[j]->addMoves(1);
-		}
 	}
-	root->sort(temp);
-	asses = root->asses;
-	while ((root->childCount != 0) && (root->turn == this->turn)) {
-		root->deleteExcept(0);
-		root = root->children[0];
-		MainBoard = root->MainBoard;
-		root->sort();
-	}
-	if (MainBoard.NumberOfPieces() != pieces) {
-		moves = 0;
-		pieces = MainBoard.NumberOfPieces();
-	}
-	else {
-		moves++;
-	}
-	if (root->childCount == 0) {
-		return 1;
-	}
-	turn = !turn;
+	std::chrono::high_resolution_clock::time_point end_time = std::chrono::high_resolution_clock::now();
 
-	return 0;
+	std::chrono::milliseconds temp = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+
+	duration = temp.count();
+
+	turn = !turn;
+	oldasses = asses;
+	type = MOVE;
+	vector = 0;
+
+#ifndef CHEAT 
+	moves.fill(board, type, x, y, vector, turn);
+	moves.sort(board, type, x, y, vector, depth - (board.amountOfDamka() + 1) / 2, turn);
+	isSorted = true;
+	if (moves.getLen() != 0) {
+		asses = moves.moves[0].asses;
+	}
+	isActual = true;
+#endif
+
+	return result;
 }
 

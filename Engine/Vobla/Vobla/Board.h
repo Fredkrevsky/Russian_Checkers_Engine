@@ -1,33 +1,32 @@
 #pragma once
-#include <iostream>
-#include <SFML/Graphics.hpp>
 
-#define mytype short int
-typedef mytype Coord[4];
-typedef mytype TField[8][8];
-
+#define mytype signed char
+#define boardtype signed char
+typedef boardtype TField[8][8];
 
 mytype GetMode(mytype x1, mytype y1, mytype x2, mytype y2, mytype mode);
 bool CheckCoord(mytype x, mytype y);
 
+extern const float AssesDamka[8][8];
+extern const float AssesSimple[8][8];
+
 class Board {
 private:
-    void FillZeros(mytype x1, mytype y1, mytype x2, mytype y2);
-    void PossibleDamka();
+    void PossibleDamka();  
     bool NTBDamka(mytype x, mytype y, bool turn, mytype mode);
-    bool NTBSimplePiece(mytype x, mytype y, bool turn);
-    float CountPieces(mytype Number);
+    bool NTBDamkaDiag(mytype* x, mytype* y, bool turn, mytype mode);
 public:
     TField Field;
     Board();
-    Board(const TField Field);
-    Board(Board& other);
+    Board(const TField Field); 
+    Board(const Board& other);  
     bool NTBDamkaOneMore(mytype x, mytype y, bool turn, mytype mode);
-    bool NTB(bool turn);
     void Move(mytype x1, mytype y1, mytype x2, mytype y2);
     void Beat(mytype x1, mytype y1, mytype x2, mytype y2);
+    bool SimpleMoveCheck(mytype x1, mytype y1, mytype x2, mytype y2);
+    bool SimpleBeatCheck(mytype x1, mytype y1, mytype x2, mytype y2, bool turn);
     void DamkaBeat(mytype x1, mytype y1, mytype x2, mytype y2, mytype mode);
-    mytype NumberOfPieces();
-    float FillAsses();
+    float getAsses();
+    mytype amountOfDamka();
 };
 

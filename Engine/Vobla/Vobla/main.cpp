@@ -1,456 +1,850 @@
 #include "Engine.h"
+#include <SFML/Graphics.hpp>
+#include <chrono>
+#include <thread>
 
 using namespace sf;
 
-const int menuH = 50;
+const int DEPTH = 11;
+
+Font font;
+bool open = true;
+bool turn = true;
+mytype depth;
+
+const int menuH = 100;
 const int tileSize = 100;
+const int leftW = (1920 - 8 * tileSize) / 2;
+const int winH = tileSize * 8 + menuH;
+const int winW = tileSize * 8 + 50;
 
 class TChoise {
-public:
     RectangleShape field;
     RectangleShape in;
+    int x, y;
+public:
     bool isSelected;
-    TChoise(int x0, int y0) {
+    TChoise() {
+        x = 0;
+        y = 0;
         field.setSize(Vector2f(20, 20));
         field.setFillColor(Color::White);
         field.setOutlineColor(Color::Black);
         field.setOutlineThickness(2);
-        field.setPosition(x0, y0);
+
         isSelected = false;
 
         in.setSize(Vector2f(10, 10));
         in.setFillColor(Color::Black);
-        in.setPosition(x0 + 5, y0 + 5);
+
+    }
+    void setPos(int x0, int y0) {
+        x = x0;
+        y = y0;
+        field.setPosition(x, y);
+        in.setPosition(x + 5, y + 5);
+    }
+    bool isPressed(Vector2f pos) {
+        return field.getGlobalBounds().contains(pos);
+    }
+    void draw(RenderWindow& win) {
+        win.draw(field);
+        if (isSelected) {
+            win.draw(in);
+        }
     }
 };
 
-void drawCheckerboard(RenderWindow& win, const mytype board[8][8]) {
-    for (mytype i = 0; i < 8; i++) {
-        for (mytype j = 0; j < 8; j++) {
-            RectangleShape cell(Vector2f(tileSize, tileSize));
-            if ((i + j) % 2 == 1) {
-                cell.setFillColor(Color(238, 238, 213));
-            }
-            else {
-                cell.setFillColor(Color(125, 148, 93));
-            }
-            cell.setPosition(i * tileSize, (7 - j) * tileSize + menuH);
-            win.draw(cell);
+class TLine {
+    RectangleShape block;
+    Text text;
+    std::string result;
+    std::string coord;
+public:
+    const int h = 50;
+    TLine() {
+        block.setFillColor(Color::White);
+        block.setOutlineColor(Color::Black);
+        block.setOutlineThickness(2);
+        block.setSize(Vector2f(398, h - 2));
 
-            CircleShape checker(tileSize / 2 - 10);
-            checker.setPosition(i * tileSize + 10, (7 - j) * tileSize + 10 + menuH);
-            if ((board[i][j] == 1) || (board[i][j] == 3)) {
-                checker.setFillColor(Color(230, 230, 230));
-            }
-            else if ((board[i][j] == 2) || (board[i][j] == 4)) {
-                checker.setFillColor(Color(30, 30, 30));
-            }
-            if (board[i][j] != 0) {
-                win.draw(checker);
-            }
-            if (board[i][j] == 3) {
-                CircleShape in(tileSize / 4 - 5);
-                in.setPosition(i * tileSize + tileSize / 4 + 5, (7 - j) * tileSize + tileSize / 4 + 5 + menuH);
-                in.setFillColor(Color(30, 30, 30));
-                win.draw(in);
-            }
-            else if (board[i][j] == 4) {
-                CircleShape in(tileSize / 4 - 5);
-                in.setPosition(i * tileSize + tileSize / 4 + 5, (7 - j) * tileSize + tileSize / 4 + 5 + menuH);
-                in.setFillColor(Color(230, 230, 230));
-                win.draw(in);
+        text.setCharacterSize(24);
+        text.setFillColor(Color::Black);
+    }
+    void setAsses(float asses) {
+        if ((asses > 9) || (asses < -9)) {
+            result = "win";
+        }
+        else if (abs(asses) < 0.1) {
+            result = "0.0";
+        }
+        else {
+            result = std::to_string(asses);
+            mytype dot = result.find('.');
+            result = result.substr(0, dot + 2);
+        }
+    }
+    void setCoord(mytype* tcoord){
+        mytype temp[4] = {};
+        for (int i = 0; i < 4; i++) {
+            temp[i] = tcoord[i];
+        }
+        coord = std::to_string(temp[0]) + " " + std::to_string(temp[1]) + " " + std::to_string(temp[2]) + " " + std::to_string(temp[3]);
+    }
+    void draw(RenderWindow& win, int x, int y) {
+        block.setPosition(x + 2, y + 2);
+        text.setPosition(52 + x, y + 2);
+        text.setFont(font);
+        text.setString(coord + "    " + result);
+        win.draw(block);
+        win.draw(text);
+    }
+};
+
+class TMovesBlock {
+    TLine* massiv;
+    int len;
+    int x;
+    int y;
+public:
+    TMovesBlock() {
+        massiv = nullptr;
+        len = 0;
+        x = 0;
+        y = 0;
+    }
+    ~TMovesBlock() {
+        if (massiv != nullptr) {
+            delete[] massiv;
+        }
+    }
+    void setMoves(Moves& moves) {
+        len = std::min((int)moves.getLen(), 8);
+        if (len > 0) {
+            massiv = new TLine[len];
+            for (int i = 0; i < len; i++) {
+                massiv[i].setCoord(moves.getCoord(i));
+                massiv[i].setAsses(moves.moves[i].asses);
             }
         }
     }
-}
+    void setPos(int x0, int y0) {
+        x = x0;
+        y = y0;
+    }
+    void draw(RenderWindow& win) {
+        for (int i = 0; i < len; i++) {
+            massiv[i].draw(win, x, y + massiv[i].h * i);
+        }
+    }
+};
 
-void drawAsses(RenderWindow& window, float asses, Font& font, bool turn) {
-    const int x = 800;
-    int height = 0;
-    asses = std::round(asses * 10) / 10;
-    std::string result;
-    if ((asses > 9) || (asses < -9)) {
-        result = "win";
+class TButton {
+    Text text;
+    RectangleShape rect;
+    int h;
+    int w;
+    int x, y;
+    int textx, texty;
+public:
+    TButton(){ 
+        text.setFillColor(Color::Black);
+        text.setCharacterSize(20);
+        text.setFont(font);
+        text.setPosition(0, 0);
+
+        rect.setSize(Vector2f(w, h));
+        rect.setOutlineColor(Color(30, 30, 30));
+        rect.setOutlineThickness(2);
+        rect.setPosition(0, 0);
+
+        x = 0;
+        y = 0;
+        textx = 0;
+        texty = 0;
+        w = 100;
+        h = 50;
     }
-    else {
-        result = std::to_string(asses);
-        mytype dot = result.find('.');
-        result = result.substr(0, dot + 2);
+    void setSize(int sizex, int sizey) {
+        w = sizex;
+        h = sizey;
+        rect.setSize(Vector2f(w, h));
     }
-    Text text(result, font, 15);
-    if (asses > 5) {
-        height = 800;
+    void setColor(Color color) {
+        rect.setFillColor(color);
     }
-    else if (asses < -5) {
-        height = 0;
+    void setString(std::string toSet) {
+        text.setString(toSet);
     }
-    else {
-        height = round(80 * (asses + 5));
+    void setPos(int x0, int y0, int tx0, int ty0) {
+        x = x0;
+        y = y0;
+        textx = tx0;
+        texty = ty0;
+
+        rect.setPosition(x, y);
+        text.setPosition(x + textx, y + texty);
     }
-    RectangleShape Black(Vector2f(50, 800 - height));
-    Black.setFillColor(Color(30, 30, 30));
-    RectangleShape White(Vector2f(50, height));
-    White.setFillColor(Color(230, 230, 230));
-    if (turn) {
-        Black.setPosition(x, menuH);
-        White.setPosition(x, 800 - height + menuH);
+    void draw(RenderWindow& win) {
+        win.draw(rect);
+        win.draw(text);
     }
-    else {
-        Black.setPosition(x, height + menuH);
-        White.setPosition(x, 0 + menuH);
+    bool isPressed(Vector2f& pos) {
+        return rect.getGlobalBounds().contains(pos);
     }
-    window.draw(Black);
-    window.draw(White);
-    if (abs(asses) > 0.01) {
-        if (turn) {
-            if (asses > 0) {
-                text.setPosition(x + 16, 770 + menuH);
-                text.setFillColor(Color(30, 30, 30));
+};
+
+class TBoard {
+    int x;
+    int y;
+    bool flipped;
+    TField field = {};
+    bool red[8][8] = {};
+
+    void redReset() {
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                red[i][j] = false;
+            }
+        }
+    }
+public:
+    TBoard() {
+        x = 0;
+        y = 0;
+        flipped = false;
+    }
+    void setField(TField toSet) {
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                field[i][j] = toSet[i][j];
+            }
+        }
+        if (flipped) {
+            flip();
+            flipped = true;
+        }
+    }
+    void setPos(int x0, int y0) {
+        x = x0;
+        y = y0;
+    }
+    MOVE_RESULT move(Engine& engine, Vector2f start, Vector2f end) {
+        redReset();
+
+        mytype x1 = (start.x - x) / tileSize;
+        mytype y1 = (start.y - y) / tileSize;
+        y1 = 7 - y1;
+
+        mytype x2 = (end.x - x) / tileSize;
+        mytype y2 = (end.y - y) / tileSize;
+        y2 = 7 - y2;
+
+        if (flipped) {
+            x1 = 7 - x1;
+            y1 = 7 - y1;
+            x2 = 7 - x2;
+            y2 = 7 - y2;
+        }
+
+        return engine.PlayerMove(x1, y1, x2, y2);
+    }
+    void redSet(Vector2f& start) {
+        int x0 = (start.x - x) / tileSize;
+        int y0 = (start.y - y) / tileSize;
+        y0 = 7 - y0;
+
+        if ((x0 >= 0) && (y0 >= 0) && (x0 < 8) && (y0 < 8) && ((x0 + y0) % 2 == 0)) {
+            red[x0][y0] = !red[x0][y0];
+        }
+    }
+    void flip() {
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 8; j++) {
+                mytype temp = field[i][j];
+                field[i][j] = field[7 - i][7 - j];
+                field[7 - i][7 - j] = temp;
+            }
+        }
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 8; j++) {
+                bool temp = red[i][j];
+                red[i][j] = red[7 - i][7 - j];
+                red[7 - i][7 - j] = temp;
+            }
+        }
+        flipped = !flipped;
+    }
+    void draw(RenderWindow& win) {
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                RectangleShape cell(Vector2f(tileSize, tileSize));
+                if (red[i][j]) {
+                    cell.setFillColor(Color(212, 109, 81));
+                }
+                else {
+                    if ((i + j) % 2 == 1) {
+                        cell.setFillColor(Color(233, 237, 204));
+                    }
+                    else {
+                        cell.setFillColor(Color(119, 153, 84));
+                    }
+                }
+
+                cell.setPosition(x + i * tileSize, y + (7 - j) * tileSize);
+                win.draw(cell);
+
+                if (field[i][j] != 0) {
+                    CircleShape checker(tileSize / 2 - 10);
+                    checker.setPosition(x + i * tileSize + 10, y + (7 - j) * tileSize + 10);
+
+                    if ((field[i][j] == 1) || (field[i][j] == 3)) {
+                        checker.setFillColor(Color(230, 230, 230));
+                    }
+                    else if ((field[i][j] == 2) || (field[i][j] == 4)) {
+                        checker.setFillColor(Color(30, 30, 30));
+                    }
+                    win.draw(checker);
+                    if (field[i][j] == 3) {
+                        CircleShape in(tileSize / 4 - 5);
+                        in.setPosition(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5);
+                        in.setFillColor(Color(30, 30, 30));
+                        win.draw(in);
+                    }
+                    else if (field[i][j] == 4) {
+                        CircleShape in(tileSize / 4 - 5);
+                        in.setPosition(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5);
+                        in.setFillColor(Color(230, 230, 230));
+                        win.draw(in);
+                    }
+                }
+            }
+        }
+    }
+};
+
+class TAssessBar {
+    int x;
+    int y;
+    int w;
+    int h;
+    int height;
+    Text text;
+    RectangleShape white;
+    RectangleShape black;
+    bool flipped;
+    float assess;
+    void setString() {
+        float toSet = std::round(abs(assess) * 10) / 10;
+        std::string result = "";
+        if (toSet > 0.1) {
+            if (toSet > 99) {
+                result = "win";
             }
             else {
-                text.setPosition(x + 12, 10 + menuH);
-                text.setFillColor(Color(230, 230, 230));
+                result = std::to_string(toSet);
+                mytype dot = result.find('.');
+                result = result.substr(0, dot + 2);
+            }
+        }
+        text.setString(result);
+    }
+    void setHeight() {
+        if (abs(assess) < 0.1) {
+            height = h / 2;
+        }
+        else if (assess > 5) {
+            height = h;
+        }
+        else if (assess < -5) {
+            height = 0;
+        }
+        else {
+            height = h * (assess + 5) / 10;
+        }
+    }
+    void setTextColor() {
+        if (assess > 0) {
+            text.setFillColor(Color(30, 30, 30));
+        }
+        else {
+            text.setFillColor(Color(230, 230, 230));
+        }
+    }
+    void setTextPosition() {
+        if (flipped) {
+            if (assess > 0) {
+                text.setPosition(x + 16, y + 10);
+            }
+            else {
+                text.setPosition(x + 12, y + h - 30);
             }
         }
         else {
-            if (asses > 0) {
-                text.setPosition(x + 16, 10 + menuH);
-                text.setFillColor(Color(30, 30, 30));
+            if (assess > 0) {
+                text.setPosition(x + 16, y + h - 30);
             }
             else {
-                text.setPosition(x + 12, 770 + menuH);
-                text.setFillColor(Color(230, 230, 230));
+                text.setPosition(x + 12, y + 10);
             }
         }
-        window.draw(text);
     }
-}
-
-void DrawAll(RenderWindow& win, Engine& Vobla, Font& font, bool turn) {
-    win.clear();
-    RectangleShape menu(Vector2f(850, menuH));
-    menu.setFillColor(Color::White);
-    menu.setOutlineColor(sf::Color::Black);
-    menu.setOutlineThickness(2);
-    if (turn) {
-        drawCheckerboard(win, Vobla.MainBoard.Field);
-    }
-    else {
-        TField ToPrint;
-        for (mytype i = 0; i < 8; i++) {
-            for (mytype j = 0; j < 8; j++) {
-                ToPrint[i][j] = Vobla.MainBoard.Field[7 - i][7 - j];
-            }
+    void setBlocks() {
+        white.setSize(Vector2f(w, height));
+        black.setSize(Vector2f(w, h - height));
+        if (flipped) {
+            white.setPosition(x, y);
+            black.setPosition(x, y + height);
         }
-        drawCheckerboard(win, ToPrint);
-    }
-    drawAsses(win, Vobla.asses, font, turn);
-    win.draw(menu);
-}
-
-void StartScreen(RenderWindow& win, Font& font, bool* turn, mytype* depth) {
-
-    *depth = 5;
-    *turn = true;
-
-    bool exit = false;
-
-    RectangleShape fon(Vector2f(850, 850));
-    fon.setPosition(0, 0);
-    fon.setFillColor(Color(230, 230, 230));
-
-
-    Text tChoise("Choose your color:", font, 30);
-    tChoise.setFillColor(Color::Black);
-    tChoise.setPosition(300, 70);
-
-    Text whiteBText("White", font, 30);
-    whiteBText.setPosition(245, 130);
-    whiteBText.setFillColor(Color::Black);
-
-    Text blackBText("Black", font, 30);
-    blackBText.setPosition(245, 180);
-    blackBText.setFillColor(Color::Black);
-
-    TChoise choise1(445, 140);
-    TChoise choise2(445, 190);
-
-
-    Text tDiff("Choose the difficulty:", font, 30);
-    tDiff.setFillColor(Color::Black);
-    tDiff.setPosition(289, 270);
-
-    Text easyBText("Easy", font, 30);
-    easyBText.setPosition(245, 330);
-    easyBText.setFillColor(Color::Black);
-
-    Text mediumBText("Medium", font, 30);
-    mediumBText.setPosition(245, 380);
-    mediumBText.setFillColor(Color::Black);
-
-    Text hardBText("Hard", font, 30);
-    hardBText.setPosition(245, 430);
-    hardBText.setFillColor(Color::Black);
-
-    Text impossibleBText("Impossible", font, 30);
-    impossibleBText.setPosition(245, 480);
-    impossibleBText.setFillColor(Color::Black);
-
-    TChoise ch1(445, 340);
-    TChoise ch2(445, 390);
-    TChoise ch3(445, 440);
-    TChoise ch4(445, 490);
-
-
-    Text startBText("Start game", font, 20);
-    startBText.setPosition(373, 610);
-    startBText.setFillColor(Color::Black);
-
-    RectangleShape startB(sf::Vector2f(200, 50));
-    startB.setPosition(325, 600);
-    startB.setFillColor(Color::Green);
-    startB.setOutlineColor(Color(30, 30, 30));
-    startB.setOutlineThickness(2);
-
-    while (win.isOpen() && !exit) {
-        Event event;
-        while (win.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) {
-                win.close();
-            }
-            else if (event.type == sf::Event::MouseButtonPressed) {
-                Vector2f mousePosition = Vector2f(Mouse::getPosition(win));
-
-                if (choise1.field.getGlobalBounds().contains(mousePosition)) {
-                    *turn = true;
-                }
-                else if (choise2.field.getGlobalBounds().contains(mousePosition)) {
-                    *turn = false;
-                }
-                else if (ch1.field.getGlobalBounds().contains(mousePosition)) {
-                    ch1.isSelected = true;
-                    ch2.isSelected = false;
-                    ch3.isSelected = false;
-                    ch4.isSelected = false;
-                    *depth = 4;
-                }
-                else if (ch2.field.getGlobalBounds().contains(mousePosition)) {
-                    ch1.isSelected = false;
-                    ch2.isSelected = true;
-                    ch3.isSelected = false;
-                    ch4.isSelected = false;
-                    *depth = 5;
-                }
-                else if (ch3.field.getGlobalBounds().contains(mousePosition)) {
-                    ch1.isSelected = false;
-                    ch2.isSelected = false;
-                    ch3.isSelected = true;
-                    ch4.isSelected = false;
-                    *depth = 6;
-                }
-                else if (ch4.field.getGlobalBounds().contains(mousePosition)) {
-                    ch1.isSelected = false;
-                    ch2.isSelected = false;
-                    ch3.isSelected = false;
-                    ch4.isSelected = true;
-                    *depth = 7;
-                }
-                else if (startB.getGlobalBounds().contains(mousePosition)) {
-                    startBText.setString("Wait a bit...");
-                    exit = true;
-                }
-            }
+        else {
+            black.setPosition(x, y);
+            white.setPosition(x, y + h - height);
         }
+    }
+public:
+    TAssessBar() {
+        x = 0;
+        y = 0;
+        w = 50;
+        h = 8 * tileSize;
+        height = h / 2;        
+        assess = 0.0;
+        flipped = false;
 
+        text.setFont(font);
+        text.setCharacterSize(15);
+
+        black.setSize(Vector2f(w, h - height));
+        black.setFillColor(Color(30, 30, 30));
+
+        white.setSize(Vector2f(w, height));
+        white.setFillColor(Color(230, 230, 230));
+    }
+    void setAssess(float toSet) {
+
+        assess = toSet;
+
+        setString();
+        setTextColor();
+        setTextPosition();
+
+        setHeight();
+        setBlocks();
+
+        
+    }
+    void setPos(int x0, int y0) {
+        x = x0;
+        y = y0;
+
+        if (flipped) {
+            black.setPosition(x, y + height);
+            white.setPosition(x, y);
+        }
+        else {
+            black.setPosition(x, y);
+            white.setPosition(x, y + h - height);
+        }
+    }
+    void flip() {
+        if (flipped) {
+            black.setPosition(x, y);
+            white.setPosition(x, y + h - height);
+        }
+        else {
+            black.setPosition(x, y + height);
+            white.setPosition(x, y);
+        }
+        Vector2f temp = text.getPosition();
+        text.setPosition(temp.x, y + h - (temp.y - y) - 20);
+        flipped = !flipped;
+    }
+    void draw(RenderWindow& win) {
+        win.draw(white);
+        win.draw(black);
+        win.draw(text);
+    }
+};
+
+class TStartForm {
+
+    RenderWindow& win;
+    RectangleShape background;
+    Text tChoise, whiteBText, blackBText;
+    Text tDiff, easyBText, mediumBText, hardBText, impossibleBText;
+    TChoise choise1, choise2, ch1, ch2, ch3, ch4;
+    TButton startB, exitB;
+
+    void draw() {
         win.clear();
-
-        win.draw(fon);
+        win.draw(background);
         win.draw(tChoise);
-
         win.draw(blackBText);
         win.draw(whiteBText);
-
-        win.draw(choise1.field);
-        win.draw(choise2.field);
-        if (*turn) {
-            win.draw(choise1.in);
-        }
-        else {
-            win.draw(choise2.in);
-        }
+        choise1.draw(win);
+        choise2.draw(win);
+        ch1.draw(win);
+        ch2.draw(win);
+        ch3.draw(win);
+        ch4.draw(win);
         win.draw(tDiff);
         win.draw(easyBText);
         win.draw(mediumBText);
         win.draw(hardBText);
         win.draw(impossibleBText);
-        win.draw(ch1.field);
-        win.draw(ch2.field);
-        win.draw(ch3.field);
-        win.draw(ch4.field);
-        if (*depth == 4) {
-            win.draw(ch1.in);
-        }
-        if (*depth == 5) {
-            win.draw(ch2.in);
-        }
-        if (*depth == 6) {
-            win.draw(ch3.in);
-        }
-        if (*depth == 7) {
-            win.draw(ch4.in);
-        }
-        win.draw(startB);
-        win.draw(startBText);
+        startB.draw(win);
+        exitB.draw(win);
         win.display();
     }
-}
+public:
+    TStartForm(RenderWindow& renwin) : win(renwin) {
 
-void MainScreen(RenderWindow& win, Font& font, bool turn, mytype depth) {
+        background.setSize(Vector2f(win.getSize()));
+        background.setFillColor(Color::White);
 
-    Engine Vobla(depth);
+        tChoise.setString("Choose your color:");
+        tChoise.setFont(font);
+        tChoise.setCharacterSize(30);
+        tChoise.setFillColor(Color::Black);
+        tChoise.setPosition(300, 70);
 
+        whiteBText.setString("White");
+        whiteBText.setFont(font);
+        whiteBText.setCharacterSize(30);
+        whiteBText.setPosition(245, 130);
+        whiteBText.setFillColor(Color::Black);
+
+        blackBText.setString("Black");
+        blackBText.setFont(font);
+        blackBText.setCharacterSize(30);
+        blackBText.setPosition(245, 180);
+        blackBText.setFillColor(Color::Black);
+
+        choise1.setPos(445, 140);
+        choise2.setPos(445, 190);
+        choise1.isSelected = true;
+        turn = true;
+
+        tDiff.setString("Choose the difficulty:");
+        tDiff.setFont(font);
+        tDiff.setCharacterSize(30);
+        tDiff.setFillColor(Color::Black);
+        tDiff.setPosition(289, 270);
+
+        easyBText.setString("Easy");
+        easyBText.setFont(font);
+        easyBText.setCharacterSize(30);
+        easyBText.setPosition(245, 330);
+        easyBText.setFillColor(Color::Black);
+
+        mediumBText.setString("Medium");
+        mediumBText.setFont(font);
+        mediumBText.setCharacterSize(30);
+        mediumBText.setPosition(245, 380);
+        mediumBText.setFillColor(Color::Black);
+
+        hardBText.setString("Hard");
+        hardBText.setFont(font);
+        hardBText.setCharacterSize(30);
+        hardBText.setPosition(245, 430);
+        hardBText.setFillColor(Color::Black);
+
+        impossibleBText.setString("Impossible");
+        impossibleBText.setFont(font);
+        impossibleBText.setCharacterSize(30);
+        impossibleBText.setPosition(245, 480);
+        impossibleBText.setFillColor(Color::Black);
+
+        ch1.setPos(445, 340);
+        ch2.setPos(445, 390);
+        ch3.setPos(445, 440);
+        ch4.setPos(445, 490);
+
+        ch4.isSelected = true;
+        depth = DEPTH;
+
+        startB.setSize(125, 50);
+        startB.setColor(Color::Green);
+        startB.setString("Start");
+        startB.setPos(270, 600, 40, 10);
+        startB.draw(win);
+
+        exitB.setSize(125, 50);
+        exitB.setColor(Color::Green);
+        exitB.setString("Exit");
+        exitB.setPos(430, 600, 42, 10);
+        exitB.draw(win);
+    }
+    void poll() {
+
+        while (win.isOpen()) {
+            Event event;
+
+            while (win.pollEvent(event)) {
+                if (event.type == sf::Event::Closed) {
+                    win.close();
+                    open = false;
+                }
+                else if (event.type == sf::Event::MouseButtonPressed) {
+                    Vector2f pos = Vector2f(Mouse::getPosition(win));
+
+                    if (choise1.isPressed(pos)) {
+                        choise1.isSelected = true;
+                        choise2.isSelected = false;
+                        turn = true;
+                    }
+                    else if (choise2.isPressed(pos)) {
+                        choise1.isSelected = false;
+                        choise2.isSelected = true;
+                        turn = false;
+                    }
+                    else if (ch1.isPressed(pos)) {
+                        ch1.isSelected = true;
+                        ch2.isSelected = false;
+                        ch3.isSelected = false;
+                        ch4.isSelected = false;
+                        depth = 8;
+                    }
+                    else if (ch2.isPressed(pos)) {
+                        ch1.isSelected = false;
+                        ch2.isSelected = true;
+                        ch3.isSelected = false;
+                        ch4.isSelected = false;
+                        depth = 9;
+                    }
+                    else if (ch3.isPressed(pos)) {
+                        ch1.isSelected = false;
+                        ch2.isSelected = false;
+                        ch3.isSelected = true;
+                        ch4.isSelected = false;
+                        depth = 10;
+                    }
+                    else if (ch4.isPressed(pos)) {
+                        ch1.isSelected = false;
+                        ch2.isSelected = false;
+                        ch3.isSelected = false;
+                        ch4.isSelected = true;
+                        depth = 11;
+                    }
+                    else if (startB.isPressed(pos)) {
+                        win.close();
+                        open = true;
+                    }
+                    else if (exitB.isPressed(pos)) {
+                        win.close();
+                        open = false;
+                    }
+                }
+            }
+            draw();
+        }
+    }
+};
+
+class TMainForm {
+    bool flip;
     bool LP = false;
     bool LR = false;
+    int duration;
 
+    RectangleShape background;
+    Text dur;
 
-    Text exitBText("Exit to main menu", font, 20);
-    exitBText.setPosition(645, 10);
-    exitBText.setFillColor(Color::Black);
+    RenderWindow& win;
+    TButton exitB;
+    TBoard board;
+    TAssessBar bar;
+    TButton flipB;
+    TMovesBlock block;
 
-    RectangleShape exitB(sf::Vector2f(200, 30));
-    exitB.setPosition(625, 10);
-    exitB.setFillColor(Color::Green);
-    exitB.setOutlineColor(Color(30, 30, 30));
-    exitB.setOutlineThickness(2);
+    void drawOther() {
+        win.draw(background);
 
-    Text lose("You lose", font, 150);
-    lose.setPosition(120, 250);
-    lose.setFillColor(Color::White);
-    lose.setOutlineColor(Color(30, 30, 30));
-    lose.setOutlineThickness(10);
-
-    Text youwin("You win", font, 150);
-    youwin.setPosition(140, 250);
-    youwin.setFillColor(Color::White);
-    youwin.setOutlineColor(Color(30, 30, 30));
-    youwin.setOutlineThickness(10);
-
-    Text isdraw("Draw", font, 150);
-    isdraw.setPosition(230, 250);
-    isdraw.setFillColor(Color::White);
-    isdraw.setOutlineColor(Color(30, 30, 30));
-    isdraw.setOutlineThickness(10);
-
-    mytype x1, y1, x2, y2;
-
-    if (!turn) {
-        Vobla.EngineMove();
+        dur.setString("Time = " + std::to_string(duration));
+        win.draw(dur);
     }
-    if (win.isOpen()) {
-        DrawAll(win, Vobla, font, turn);
-        win.draw(exitB);
-        win.draw(exitBText);
+    void draw() {
+        win.clear();
+        drawOther();
+        board.draw(win);
+        bar.draw(win);
+        exitB.draw(win);
+        flipB.draw(win);
+        block.draw(win);
         win.display();
     }
+public:
+    TMainForm(RenderWindow& renwin, Engine& engine, bool turn): win(renwin) {
+        
+        background.setSize(Vector2f(win.getSize()));
+        background.setPosition(0, 0);
+        background.setFillColor(Color::White);
 
-    while (win.isOpen())
-    {
-        Event event;
-        while (win.pollEvent(event))
+        dur.setFont(font);
+        dur.setCharacterSize(24);
+        dur.setFillColor(Color::Black);
+        dur.setPosition(100, 50);
+
+        flip = !turn;
+
+        exitB.setSize(200, 30);
+        exitB.setColor(Color::Green);
+        exitB.setString("Exit to main menu");
+        exitB.setPos(1625, 10, 20, 3);
+
+        board.setField(engine.board.Field);
+        board.setPos((1920 - 8 * tileSize) / 2, menuH);
+
+        bar.setPos(1920 / 2 + 4 * tileSize, menuH);
+        bar.setAssess(engine.asses);
+
+        flipB.setSize(100, 30);
+        flipB.setColor(Color::Green);
+        flipB.setString("Flip");
+        flipB.setPos(1250, 920, 30, 3);
+
+        board.setField(engine.board.Field);
+        bar.setAssess(0.0);
+        duration = 0;
+
+        if (!turn) {
+            board.flip();
+            bar.flip();
+
+            draw();
+            engine.EngineMove();
+
+            board.setField(engine.board.Field);
+            bar.setAssess(engine.asses);
+            duration = engine.duration;
+        }
+
+        block.setMoves(engine.moves);
+        block.setPos(1400, 100);
+
+        draw();
+
+    }
+    void poll(Engine& engine) {
+
+        Vector2f LPPos, LRPos;
+
+        while (win.isOpen())
         {
-            if (event.type == Event::Closed)
-                win.close();
+            Event event;
 
-            if (event.type == Event::MouseButtonPressed) {
-                Vector2f mousePressPosition = Vector2f(Mouse::getPosition(win));
-                if (exitB.getGlobalBounds().contains(mousePressPosition)) {
-                    return;
+            while (win.pollEvent(event))
+            {
+                if (event.type == Event::Closed) {
+                    win.close();
+                    open = false;
                 }
-                else {
-                    x1 = mousePressPosition.x / tileSize;
-                    y1 = (mousePressPosition.y - menuH) / tileSize;
-                    if (turn) {
-                        y1 = 7 - y1;
+                if (event.type == Event::MouseButtonPressed) {
+                    Vector2f pos = Vector2f(Mouse::getPosition(win));
+                    if (exitB.isPressed(pos)) {
+                        win.close();
+                        open = true;
+                    }
+                    else if (flipB.isPressed(pos)) {
+                        board.flip();
+                        bar.flip();
                     }
                     else {
-                        x1 = 7 - x1;
+                        if (event.mouseButton.button == sf::Mouse::Left) {
+                            LP = true;
+                            LPPos = pos;
+                        }
+                        else if (event.mouseButton.button == sf::Mouse::Right) {
+                            board.redSet(pos);
+                        }
                     }
-                    if (event.mouseButton.button == sf::Mouse::Left) {
-                        LP = true;
+                }
+                if (event.type == Event::MouseButtonReleased) {
+                    if (LP) {
+                        Vector2f pos = Vector2f(Mouse::getPosition(win));
+                        if (event.mouseButton.button == sf::Mouse::Left) {
+                            LR = true;
+                            LRPos = pos;
+                        }
+                    }
+                }
+                if (LP && LR) {
+                    LP = false;
+                    LR = false;
+
+                    MOVE_RESULT result = board.move(engine, LPPos, LRPos);
+                    board.setField(engine.board.Field);
+                    bar.setAssess(engine.asses);
+                    draw();
+
+                    if (result == SUCCESS) {
+                        MOVE_RESULT result2 = engine.EngineMove();
+                        board.setField(engine.board.Field);
+                        bar.setAssess(engine.asses);
+                        duration = engine.duration;
+                        block.setMoves(engine.moves);
                     }
                 }
             }
-            if (event.type == Event::MouseButtonReleased) {
-                if (LP) {
-                    Vector2i mouseReleasePosition = Mouse::getPosition(win);
-                    x2 = mouseReleasePosition.x / tileSize;
-                    y2 = (mouseReleasePosition.y - menuH) / tileSize;
-                    if (turn) {
-                        y2 = 7 - y2;
-                    }
-                    else {
-                        x2 = 7 - x2;
-                    }
-                    if (event.mouseButton.button == sf::Mouse::Left) {
-                        LR = true;
-                    }
-                }
-            }
-            if (LP && LR) {
-                LP = false;
-                LR = false;
-                mytype result = Vobla.PlayerMove(x1, y1, x2, y2);
-                DrawAll(win, Vobla, font, turn);
-                win.draw(exitB);
-                win.draw(exitBText);
-                if (result == 0) {
-                    win.draw(isdraw);
-                }
-                win.display();
-                if (result == 1) {
-                    mytype result2 = Vobla.EngineMove();
-                    DrawAll(win, Vobla, font, turn);
-                    win.draw(exitB);
-                    win.draw(exitBText);
-                    if (result2 == -1) {
-                        win.draw(youwin);
-                    }
-                    else if (result2 == 1) {
-                        win.draw(lose);
-                    }
-                    win.display();
-                }
-            }
+            draw();
         }
     }
-}
+};
+    /*
+    MovesBlock block(Vobla.moves);
+    block.setPos(850, menuH);
+    block.draw(win);
+
+    Text comm;
+    comm.setFillColor(Color::Black);
+    comm.setCharacterSize(30);
+    comm.setFont(font);
+    comm.setPosition(1000, 500);
+    std::string temp;
+    switch (Vobla.status) {
+        case COMPULSORY: temp = "Compulsory"; break;
+        case STRONGEST: temp = "Strongest"; break;
+        case NORMAL: temp = "Normal"; break;
+        case MISTAKE: temp = "Mistake"; break;
+        case BLUNDER: temp = "Blunder"; break;
+    }
+    comm.setString(temp);
+    win.draw(comm);
+      */
 
 int main()
 {
-
-    bool turn = true;
-    mytype depth = 5;
-
-    RenderWindow win(VideoMode(850, 850), "VOBLA", Style::Close);
 
     Image icon;
     if (!icon.loadFromFile("Image/icon.png")) {
         return 1;
     }
-    win.setIcon(512, 512, icon.getPixelsPtr());
 
-    Font font;
     if (!font.loadFromFile("Fonts/arialmt.ttf")) {
         return 2;
     }
 
-    while (win.isOpen()) {
-        StartScreen(win, font, &turn, &depth);
-        if (win.isOpen()) {
-            MainScreen(win, font, turn, depth);
+    while (open) {
+        if (open) {
+            RenderWindow start(VideoMode(850, 850), "VOBLA", Style::Close);
+            start.setIcon(512, 512, icon.getPixelsPtr());
+            start.setFramerateLimit(60);
+            start.setVerticalSyncEnabled(true);
+            
+            TStartForm form(start);
+            form.poll();
+        }
+        if (open) {
+            RenderWindow main(VideoMode(1920, 1080), "VOBLA", Style::Fullscreen);
+            main.setIcon(512, 512, icon.getPixelsPtr());
+            main.setFramerateLimit(60);
+            main.setVerticalSyncEnabled(true);
+            
+            Engine engine(depth);
+            TMainForm form(main, engine, turn);
+            form.poll(engine);
         }
     }
-
 
     return 0;
 }

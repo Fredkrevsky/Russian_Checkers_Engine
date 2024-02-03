@@ -1,4 +1,6 @@
+/*
 #include "Tree.h"
+#include <algorithm>
 
 mytype Tree::GetMasMax() {
 	float max = children[0]->FillAsses();
@@ -41,15 +43,15 @@ void Tree::invert(mytype WIDTH) {
 	}
 }
 
-Tree::Tree(Coord arr, Board MainBoard, bool turn) {
+Tree::Tree(Coord arr, Board board, bool turn) {
 	for (mytype i = 0; i < 4; i++) {
 		moves[i] = arr[i];
 	}
-	asses = MainBoard.FillAsses();
+	asses = board.FillAsses();
 	childCount = 0;
 	children = nullptr;
 	this->turn = turn;
-	this->MainBoard = MainBoard;
+	this->board = board;
 }
 Tree::~Tree() {
 	if (children != nullptr) {
@@ -98,15 +100,16 @@ int Tree::NumberOfNodes() {
 }
 void Tree::FillMoves(mytype depth) {
 	mytype x1, y1, x2, y2;
-	if (MainBoard.NTB(turn)) {
-		PossibleMoves PM(MainBoard, turn);
-		PM.FillMoves();
+	PossibleMoves PM(board, turn);
+	PM.FillMoves();
+	if (PM.ntb) {
 		for (mytype i = 0; i < PM.len(); i++) {
-			Board oldBoard = MainBoard;
-			x1 = PM.GetMoveX1(i);
-			y1 = PM.GetMoveY1(i);
-			x2 = PM.GetMoveX2(i);
-			y2 = PM.GetMoveY2(i);
+			Board oldBoard = board;
+			mytype* temp = PM.GetCoord(i);
+			x1 = temp[0];
+			y1 = temp[1];
+			x2 = temp[2];
+			y2 = temp[3];
 			if (oldBoard.Field[x1][y1] <= 2) {
 				oldBoard.Beat(x1, y1, x2, y2);
 			}
@@ -121,14 +124,13 @@ void Tree::FillMoves(mytype depth) {
 		}
 	}
 	else if (depth > 0) {
-		PossibleMoves PM(MainBoard, turn);
-		PM.FillMoves();
 		for (mytype i = 0; i < PM.len(); i++) {
-			Board oldBoard = MainBoard;
-			x1 = PM.GetMoveX1(i);
-			y1 = PM.GetMoveY1(i);
-			x2 = PM.GetMoveX2(i);
-			y2 = PM.GetMoveY2(i);
+			Board oldBoard = board;
+			mytype* temp = PM.GetCoord(i);
+			x1 = temp[0];
+			y1 = temp[1];
+			x2 = temp[2];
+			y2 = temp[3];
 			oldBoard.Move(x1, y1, x2, y2);
 			Coord arr = { x1, y1, x2, y2 };
 			Tree* NewNode = new Tree(arr, oldBoard, !turn);
@@ -138,10 +140,10 @@ void Tree::FillMoves(mytype depth) {
 	}
 }
 void Tree::FillBeatsForOne(mytype x, mytype y, mytype mode, mytype depth) {
-	PossibleMoves PM(MainBoard, turn);
+	PossibleMoves PM(board, turn);
 	mytype x2, y2;
-	if (MainBoard.Field[x][y] <= 2) {
-		PM.FillBeatsForOne(x, y, mode);
+	if (board.Field[x][y] <= 2) {
+		PM.FillBeatsForOne(x, y);
 	}
 	else {
 		PM.FillDamkaBeatsAfterBeat(x, y, mode);
@@ -153,9 +155,10 @@ void Tree::FillBeatsForOne(mytype x, mytype y, mytype mode, mytype depth) {
 	else {
 		mytype tempmode = mode;
 		for (mytype i = 0; i < PM.len(); i++) {
-			Board TempBoard = MainBoard;
-			x2 = PM.GetMoveX2(i);
-			y2 = PM.GetMoveY2(i);
+			Board TempBoard = board;
+			mytype* temp = PM.GetCoord(i);
+			x2 = temp[2];
+			y2 = temp[3];
 			if (TempBoard.Field[x][y] <= 2) {
 				TempBoard.Beat(x, y, x2, y2);
 			}
@@ -182,18 +185,10 @@ void Tree::addMoves(mytype amount) {
 }
 void Tree::sort() {
 	FillAsses();
-	bool swapped;
-	do {
-		swapped = false;
-		for (mytype i = 0; i < childCount - 1; i++) {
-			if (children[i]->asses < children[i + 1]->asses) {
-				Tree* temp = children[i];
-				children[i] = children[i + 1];
-				children[i + 1] = temp;
-				swapped = true;
-			}
-		}
-	} while (swapped);
+	std::sort(children, children + childCount, [](const Tree* a, const Tree* b) {
+		return a->asses > b->asses;
+		});
+
 	if (!turn) {
 		invert();
 	}
@@ -202,25 +197,17 @@ void Tree::sort(mytype WIDTH) {
 	for (mytype i = 0; i < WIDTH; i++) {
 		children[i]->FillAsses();
 	}
-	bool swapped;
-	do {
-		swapped = false;
-		for (mytype i = 0; i < WIDTH - 1; i++) {
-			if (children[i]->asses < children[i + 1]->asses) {
-				Tree* temp = children[i];
-				children[i] = children[i + 1];
-				children[i + 1] = temp;
-				swapped = true;
-			}
-		}
-	} while (swapped);
+	std::sort(children, children + WIDTH, [](const Tree* a, const Tree* b) {
+		return a->asses > b->asses;
+		});
+
 	if (!turn) {
 		invert(WIDTH);
 	}
 }
 float Tree::FillAsses() {
-	if ((childCount == 0)) {
-		return MainBoard.FillAsses();
+	if (childCount == 0) {
+		return board.FillAsses();
 	}	
 	mytype index;
 	if (this->turn) {
@@ -232,7 +219,7 @@ float Tree::FillAsses() {
 	this->asses = children[index]->asses;
 	return this->asses;
 }
-mytype Tree::exsists(mytype x1, mytype y1, mytype x2, mytype y2) {
+mytype Tree::exists(mytype x1, mytype y1, mytype x2, mytype y2) {
 	for (mytype i = 0; i < childCount; i++) {
 		if ((children[i]->moves[0] == x1) && (children[i]->moves[1] == y1) && (children[i]->moves[2] == x2) && (children[i]->moves[3] == y2)) {
 			return i;
@@ -240,3 +227,4 @@ mytype Tree::exsists(mytype x1, mytype y1, mytype x2, mytype y2) {
 	}
 	return -1;
 }
+*/
