@@ -13,7 +13,7 @@ void PossibleMoves::FillDamkaBeatsDiag(mytype x0, mytype y0, mytype x, mytype y,
 		}
 		if (CheckCoord(x + 1, y + 1)) {
 			if ((field[x + 1][y + 1] == 0) && ((field[x][y] == temp) || (field[x][y] == temp + 2))) {
-				(AllMoves, &len, x0, y0, ++x, ++y);
+				asmAdd(AllMoves, &len, x0, y0, ++x, ++y);
 				if (!NTBDamkaOneMore(field, x++, y++, turn, 1)) {
 					while (CheckCoord(x, y) && (field[x][y] == 0)) {
 						asmAdd(AllMoves, &len, x0, y0, x++, y++);
@@ -197,8 +197,7 @@ void PossibleMoves::FillMoves() {
 		}
 	}
 }
-mytype PossibleMoves::fill(MOVE_TYPE type, mytype x, mytype y, mytype vector) {
-	ntb = false;
+void PossibleMoves::fill(MOVE_TYPE type, mytype x, mytype y, mytype vector) {
 	if (type == BEAT) {
 		if (field[x][y] >= 3) {
 			FillDamkaBeatsForOne(x, y, vector);
@@ -206,18 +205,10 @@ mytype PossibleMoves::fill(MOVE_TYPE type, mytype x, mytype y, mytype vector) {
 		else {
 			FillBeatsForOne(x, y);
 		}
-
-		if (len == 0) {
-			return -1;
-		}
-		else {
-			ntb = true;
-		}
+		ntb = len > 0;
 	}
-
-	if (len == 0) {
+	else {
 		FillMoves();
 	}
-	return len;
 }
 

@@ -805,27 +805,6 @@ public:
         }
     }
 };
-    /*
-    MovesBlock block(Vobla.moves);
-    block.setPos(850, menuH);
-    block.draw(win);
-
-    Text comm;
-    comm.setFillColor(Color::Black);
-    comm.setCharacterSize(30);
-    comm.setFont(font);
-    comm.setPosition(1000, 500);
-    std::string temp;
-    switch (Vobla.status) {
-        case COMPULSORY: temp = "Compulsory"; break;
-        case STRONGEST: temp = "Strongest"; break;
-        case NORMAL: temp = "Normal"; break;
-        case MISTAKE: temp = "Mistake"; break;
-        case BLUNDER: temp = "Blunder"; break;
-    }
-    comm.setString(temp);
-    win.draw(comm);
-      */
 
 int main()
 {

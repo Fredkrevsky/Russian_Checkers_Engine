@@ -1,8 +1,6 @@
 #include "Engine.h"
 #include <chrono>
 
-#define CHEAT
-
 MOVE_ASSES Engine::getStatus(mytype index, float old) {
 	if (moves.len == 1) {
 		return COMPULSORY;
@@ -58,13 +56,6 @@ MOVE_RESULT Engine::PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2) {
 				Beat(field, x1, y1, x2, y2);
 			}
 			vector = GetMode(x1, y1, x2, y2, vector);
-
-#ifndef CHEAT
-			asses = moves.moves[index].asses;
-			status = getStatus(index, oldasses);
-			oldasses = asses;
-#endif		
-
 			moves.fill(field, type, x, y, vector, turn);
 			isActual = true;
 
@@ -74,11 +65,6 @@ MOVE_RESULT Engine::PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2) {
 		}
 		else {
 			Move(field, x1, y1, x2, y2);
-#ifndef CHEAT
-			asses = moves.moves[index].asses;
-			status = getStatus(index, oldasses);
-			oldasses = asses;
-#endif
 		}
 
 		turn = !turn;
@@ -136,16 +122,6 @@ MOVE_RESULT Engine::EngineMove() {
 	oldasses = asses;
 	type = MOVE;
 	vector = 0;
-
-#ifndef CHEAT 
-	moves.fill(board, type, x, y, vector, turn);
-	moves.sort(board, type, x, y, vector, depth - (board.amountOfDamka() + 1) / 2, turn);
-	isSorted = true;
-	if (moves.getLen() != 0) {
-		asses = moves.moves[0].asses;
-	}
-	isActual = true;
-#endif
 
 	return result;
 }

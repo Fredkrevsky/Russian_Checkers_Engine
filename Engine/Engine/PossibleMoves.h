@@ -24,6 +24,6 @@ public:
     mytype len;
     PossibleMoves(TField& field, bool turn);
     bool ntb;
-    mytype fill(MOVE_TYPE type, mytype x, mytype y, mytype vector);
+    void fill(MOVE_TYPE type, mytype x, mytype y, mytype vector);
 };
 
