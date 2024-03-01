@@ -4,7 +4,7 @@
 #define CHEAT
 
 MOVE_ASSES Engine::getStatus(mytype index, float old) {
-	if (moves.getLen() == 1) {
+	if (moves.len == 1) {
 		return COMPULSORY;
 	}
 	if (index == 0) {
@@ -46,8 +46,7 @@ MOVE_RESULT Engine::PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2) {
 		moves.fill(field, type, x, y, vector, turn);
 		isActual = true;
 	}
-	mytype index = moves.find(x1, y1, x2, y2);
-	if (index != -1) {
+	if (moves.find(x1, y1, x2, y2)) {
 		x = x2;
 		y = y2;
 		if (moves.ntb) {
@@ -96,10 +95,10 @@ MOVE_RESULT Engine::EngineMove() {
 	nodes = 0;
 	while (true) {
 		moves.fill(field, type, x, y, vector, turn);
-		if (moves.getLen() > 0) {
+		if (moves.len > 0) {
 			result = SUCCESS;
 			moves.sort(field, type, x, y, vector, depth - amountOfDamka(field) / 2, turn, &nodes);
-			asses = moves.moves[0].asses;
+			asses = moves.getAsses();
 			mytype* coord = moves.getCoord(0);
 			mytype x1, y1, x2, y2;
 			x1 = coord[0];

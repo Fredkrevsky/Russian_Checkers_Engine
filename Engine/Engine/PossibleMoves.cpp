@@ -13,10 +13,10 @@ void PossibleMoves::FillDamkaBeatsDiag(mytype x0, mytype y0, mytype x, mytype y,
 		}
 		if (CheckCoord(x + 1, y + 1)) {
 			if ((field[x + 1][y + 1] == 0) && ((field[x][y] == temp) || (field[x][y] == temp + 2))) {
-				this->Add(x0, y0, ++x, ++y);
+				(AllMoves, &len, x0, y0, ++x, ++y);
 				if (!NTBDamkaOneMore(field, x++, y++, turn, 1)) {
 					while (CheckCoord(x, y) && (field[x][y] == 0)) {
-						this->Add(x0, y0, x++, y++);
+						asmAdd(AllMoves, &len, x0, y0, x++, y++);
 					}
 				}
 			}
@@ -30,10 +30,10 @@ void PossibleMoves::FillDamkaBeatsDiag(mytype x0, mytype y0, mytype x, mytype y,
 		}
 		if (CheckCoord(x - 1, y + 1)) {
 			if ((field[x - 1][y + 1] == 0) && ((field[x][y] == temp) || (field[x][y] == temp + 2))) {
-				this->Add(x0, y0, --x, ++y);
+				asmAdd(AllMoves, &len, x0, y0, --x, ++y);
 				if (!NTBDamkaOneMore(field, x--, y++, turn, 2)) {
 					while (CheckCoord(x, y) && (field[x][y] == 0)) {
-						this->Add(x0, y0, x--, y++);
+						asmAdd(AllMoves, &len, x0, y0, x--, y++);
 					}
 				}
 			}
@@ -47,10 +47,10 @@ void PossibleMoves::FillDamkaBeatsDiag(mytype x0, mytype y0, mytype x, mytype y,
 		}
 		if (CheckCoord(x + 1, y - 1)) {
 			if ((field[x + 1][y - 1] == 0) && ((field[x][y] == temp) || (field[x][y] == temp + 2))) {
-				this->Add(x0, y0, ++x, --y);
+				asmAdd(AllMoves, &len, x0, y0, ++x, --y);
 				if (!NTBDamkaOneMore(field, x++, y--, turn, 3)) {
 					while (CheckCoord(x, y) && (field[x][y] == 0)) {
-						this->Add(x0, y0, x++, y--);
+						asmAdd(AllMoves, &len, x0, y0, x++, y--);
 					}
 				}
 			}
@@ -64,10 +64,10 @@ void PossibleMoves::FillDamkaBeatsDiag(mytype x0, mytype y0, mytype x, mytype y,
 		}
 		if (CheckCoord(x - 1, y - 1)) {
 			if ((field[x - 1][y - 1] == 0) && ((field[x][y] == temp) || (field[x][y] == temp + 2))) {
-				this->Add(x0, y0, --x, --y);
+				asmAdd(AllMoves, &len, x0, y0, --x, --y);
 				if (!NTBDamkaOneMore(field, x--, y--, turn, 4)) {
 					while (CheckCoord(x, y) && (field[x][y] == 0)) {
-						this->Add(x0, y0, x--, y--);
+						asmAdd(AllMoves, &len, x0, y0, x--, y--);
 					}
 				}
 			}
@@ -78,42 +78,29 @@ void PossibleMoves::FillDamkaMoves(mytype x, mytype y) {
 	mytype x0 = x;
 	mytype y0 = y;
 	while (CheckCoord(++x, ++y) && (field[x][y] == 0)) {
-		this->Add(x0, y0, x, y);
+		asmAdd(AllMoves, &len, x0, y0, x, y);
 	}
 	x = x0;
 	y = y0;
 	while (CheckCoord(--x, ++y) && (field[x][y] == 0)) {
-		this->Add(x0, y0, x, y);
+		asmAdd(AllMoves, &len, x0, y0, x, y);
 	}
 	x = x0;
 	y = y0;
 	while (CheckCoord(++x, --y) && (field[x][y] == 0)) {
-		this->Add(x0, y0, x, y);
+		asmAdd(AllMoves, &len, x0, y0, x, y);
 	}
 	x = x0;
 	y = y0;
 	while (CheckCoord(--x, --y) && (field[x][y] == 0)) {
-		this->Add(x0, y0, x, y);
+		asmAdd(AllMoves, &len, x0, y0, x, y);
 	}
 }
 PossibleMoves::PossibleMoves(TField& tfield, bool tturn) {
 	BCopy(field, tfield);
-	lenmov = 0;
+	len = 0;
 	turn = tturn;
 	ntb = false;
-}
-void PossibleMoves::Add(mytype x1, mytype y1, mytype x2, mytype y2) {
-	AllMoves[lenmov][0] = x1;
-	AllMoves[lenmov][1] = y1;
-	AllMoves[lenmov][2] = x2;
-	AllMoves[lenmov][3] = y2;
-	lenmov++;
-}
-mytype PossibleMoves::len() const {
-	return lenmov;
-}
-mytype* PossibleMoves::GetCoord(mytype index) {
-	return AllMoves[index];
 }
 void PossibleMoves::FillDamkaBeatsForOne(mytype x, mytype y, mytype mode) {
 	mytype x0 = x;
@@ -157,16 +144,16 @@ void PossibleMoves::FillDamkaBeatsForOne(mytype x, mytype y, mytype mode) {
 }
 void PossibleMoves::FillBeatsForOne(mytype x, mytype y) {
 	if (SBCheck(field, x, y, x + 2, y + 2, turn)) {
-		this->Add(x, y, x + 2, y + 2);
+		asmAdd(AllMoves, &len, x, y, x + 2, y + 2);
 	}
 	if (SBCheck(field, x, y, x - 2, y + 2, turn)) {
-		this->Add(x, y, x - 2, y + 2);
+		asmAdd(AllMoves, &len, x, y, x - 2, y + 2);
 	}
 	if (SBCheck(field, x, y, x + 2, y - 2, turn)) {
-		this->Add(x, y, x + 2, y - 2);
+		asmAdd(AllMoves, &len, x, y, x + 2, y - 2);
 	}
 	if (SBCheck(field, x, y, x - 2, y - 2, turn)) {
-		this->Add(x, y, x - 2, y - 2);
+		asmAdd(AllMoves, &len, x, y, x - 2, y - 2);
 	}
 }
 void PossibleMoves::FillMoves() {
@@ -185,7 +172,7 @@ void PossibleMoves::FillMoves() {
 			}
 		}
 	}
-	if (lenmov != 0) {
+	if (len != 0) {
 		ntb = true;
 	}
 	else {
@@ -197,10 +184,10 @@ void PossibleMoves::FillMoves() {
 			for (mytype y = 0; y < 8; y++) {
 				if (field[x][y] == temp) {
 					if (SMCheck(field, x, y, x + 1, y + dy)) {
-						this->Add(x, y, x + 1, y + dy);
+						asmAdd(AllMoves, &len, x, y, x + 1, y + dy);
 					}
 					if (SMCheck(field, x, y, x - 1, y + dy)) {
-						this->Add(x, y, x - 1, y + dy);
+						asmAdd(AllMoves, &len, x, y, x - 1, y + dy);
 					}
 				}
 				else if (field[x][y] == temp + 2) {
@@ -210,7 +197,7 @@ void PossibleMoves::FillMoves() {
 		}
 	}
 }
-mytype PossibleMoves::Fill(MOVE_TYPE type, mytype x, mytype y, mytype vector) {
+mytype PossibleMoves::fill(MOVE_TYPE type, mytype x, mytype y, mytype vector) {
 	ntb = false;
 	if (type == BEAT) {
 		if (field[x][y] >= 3) {
@@ -220,7 +207,7 @@ mytype PossibleMoves::Fill(MOVE_TYPE type, mytype x, mytype y, mytype vector) {
 			FillBeatsForOne(x, y);
 		}
 
-		if (lenmov == 0) {
+		if (len == 0) {
 			return -1;
 		}
 		else {
@@ -228,9 +215,9 @@ mytype PossibleMoves::Fill(MOVE_TYPE type, mytype x, mytype y, mytype vector) {
 		}
 	}
 
-	if (lenmov == 0) {
+	if (len == 0) {
 		FillMoves();
 	}
-	return lenmov;
+	return len;
 }
 

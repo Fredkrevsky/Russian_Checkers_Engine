@@ -8,23 +8,22 @@ enum MOVE_TYPE {
     BEAT,
 };
 
+extern "C" void asmAdd(mytype[100][4], mytype*, mytype, mytype, mytype, mytype);
+
 class PossibleMoves {
 private:
-    mytype AllMoves[100][4];
-    mytype lenmov;
     bool turn;
     TField field;
     void FillDamkaBeatsDiag(mytype x0, mytype y0, mytype x, mytype y, mytype mode);
     void FillDamkaBeatsForOne(mytype x, mytype y, mytype mode);
     void FillDamkaMoves(mytype x, mytype y);
-    void Add(mytype x1, mytype y1, mytype x2, mytype y2);
     void FillBeatsForOne(mytype x, mytype y);
     void FillMoves();
 public:
+    mytype AllMoves[100][4];
+    mytype len;
     PossibleMoves(TField& field, bool turn);
     bool ntb;
-    mytype len() const;
-    mytype* GetCoord(mytype index);
-    mytype Fill(MOVE_TYPE type, mytype x, mytype y, mytype vector);
+    mytype fill(MOVE_TYPE type, mytype x, mytype y, mytype vector);
 };
 

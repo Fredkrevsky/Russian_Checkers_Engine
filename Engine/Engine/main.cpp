@@ -119,12 +119,12 @@ public:
         }
     }
     void setMoves(Moves& moves) {
-        len = std::min((int)moves.getLen(), 8);
+        len = std::min((int)moves.len, 8);
         if (len > 0) {
             massiv = new TLine[len];
             for (int i = 0; i < len; i++) {
                 massiv[i].setCoord(moves.getCoord(i));
-                massiv[i].setAsses(moves.moves[i].asses);
+                massiv[i].setAsses(moves.getAsses());
             }
         }
     }
@@ -661,7 +661,12 @@ class TMainForm {
 
     void drawOther() {
         win.draw(background);
-        nodes.setString("Nodes = " + std::to_string(num_nodes));
+        if (duration != 0) {
+            nodes.setString("kN/s = " + std::to_string((long)num_nodes / duration));
+        }
+        else {
+            nodes.setString("N/s = 0");
+        }
         dur.setString("Time = " + std::to_string(duration));
         win.draw(dur);
         win.draw(nodes);

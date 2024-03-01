@@ -1,21 +1,18 @@
 #include "AT.h"
-#include <thread>
 #include <vector>
-
-//#define THREAD
 
 float mmAB(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vector, int depth, float alpha, float beta, bool turn, int* nodes) {
 
 	(*nodes)++;
 
-	Moves moves;
-	moves.fill(field, type, x, y, vector, turn);
+	PossibleMoves moves(field, turn);
+	moves.fill(type, x, y, vector);
 
-	if (type == BEAT && moves.getLen() == 0) {
+	if (type == BEAT && moves.len == 0) {
 		return mmAB(field, MOVE, 0, 0, 0, depth - 1, alpha, beta, !turn, nodes);
 	}
 
-	if (moves.getLen() == 0) {
+	if (moves.len == 0) {
 		if (turn) {
 			return -100;
 		}
@@ -28,13 +25,13 @@ float mmAB(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vector, int
 	if (turn) {
 		float maxEval = -100;
 		float eval;
-		for (int i = 0; i < moves.getLen(); i++) {
+		for (int i = 0; i < moves.len; i++) {
 			mytype tempVector = vector;
 			TField TempBoard;
 			BCopy(TempBoard, field);
 
 			mytype x1, y1, x2, y2;
-			mytype* temp = moves.getCoord(i);
+			mytype* temp = moves.AllMoves[i];
 			x1 = temp[0];
 			y1 = temp[1];
 			x2 = temp[2];
@@ -64,13 +61,13 @@ float mmAB(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vector, int
 	else {
 		float minEval = 100;
 		float eval;
-		for (int i = 0; i < moves.getLen(); i++) {
+		for (int i = 0; i < moves.len; i++) {
 			mytype tempVector = vector;
 			TField TempBoard;
 			BCopy(TempBoard, field);
 
 			mytype x1, y1, x2, y2;
-			mytype* temp = moves.getCoord(i);
+			mytype* temp = moves.AllMoves[i];
 			x1 = temp[0];
 			y1 = temp[1];
 			x2 = temp[2];
@@ -101,46 +98,32 @@ float mmAB(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vector, int
 }
 
 Moves::Moves() {
-	moves = nullptr;
 	len = 0;
 	ntb = false;
 }
-Moves::~Moves() {
-	if (moves != nullptr) {
-		delete[] moves;
-	}
-}
 void Moves::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vector, bool turn) {
 	PossibleMoves PM(field, turn);
-	PM.Fill(type, x, y, vector);
+	PM.fill(type, x, y, vector);
 	ntb = PM.ntb;
+	len = PM.len;
+	moves.clear();
 
-	len = PM.len();
-	if (moves != nullptr) {
-		delete[] moves;
-	}
-	moves = new elemMove[len];
+	elemMove temp;
 	for (int i = 0; i < len; i++) {
-		mytype* coord = PM.GetCoord(i);
 		for (int j = 0; j < 4; j++) {
-			moves[i].Coord[j] = coord[j];
+			temp.Coord[j] = PM.AllMoves[i][j];
 		}
-		moves[i].asses = 0;
+		temp.asses = 0;
+		moves.push_back(temp);
 	}
 }
-mytype Moves::find(mytype x1, mytype y1, mytype x2, mytype y2) {
-	for (int i = 0; i < len; i++) {
-		if (moves[i].Coord[0] == x1 && moves[i].Coord[1] == y1 && moves[i].Coord[2] == x2 && moves[i].Coord[3] == y2) {
-			return i;
+bool Moves::find(mytype x1, mytype y1, mytype x2, mytype y2) {
+	for (auto elem: moves) {
+		if (elem.Coord[0] == x1 && elem.Coord[1] == y1 && elem.Coord[2] == x2 && elem.Coord[3] == y2) {
+			return true;
 		}
 	}
-	return -1;
-}
-mytype* Moves::getCoord(mytype index) {
-	return moves[index].Coord;
-}
-mytype Moves::getLen() {
-	return len;
+	return false;
 }
 float Moves::getAsses() {
 	if (len > 0) {
@@ -148,77 +131,10 @@ float Moves::getAsses() {
 	}
 	return 0;
 }
-
-#ifdef THREAD
-
-void obertka(Board board, MOVE_TYPE type, mytype x, mytype y, mytype vector, int depth, float alpha, float beta, bool turn, float* result, mytype index) {
-
-	float temp = mmAB(board, type, x, y, vector, depth, alpha, beta, turn);
-	result[index] = temp;
-
+mytype* Moves::getCoord(mytype index) {
+	return moves[index].Coord;
 }
-
-void Moves::sort(Board& board, MOVE_TYPE type, mytype x, mytype y, mytype vector, int depth, bool turn) {
-
-	std::vector<std::thread> threads;
-	float result[100] = {};
-
-	for (mytype i = 0; i < len; i++) {
-		Board TempBoard = board;
-		mytype tempVector = vector;
-
-		mytype x1, y1, x2, y2;
-		mytype* temp = getCoord(i);
-		x1 = temp[0];
-		y1 = temp[1];
-		x2 = temp[2];
-		y2 = temp[3];
-		if (ntb) {
-			if (TempBoard.field[x1][y1] >= 3) {
-				TempBoard.DamkaBeat(x1, y1, x2, y2, tempVector);
-			}
-			else {
-				TempBoard.Beat(x1, y1, x2, y2);
-			}
-			tempVector = GetMode(x1, y1, x2, y2, tempVector);
-			
-			threads.emplace_back(obertka, TempBoard, BEAT, x2, y2, tempVector, depth, -100, 100, turn, result, i);
-		}
-		else {
-			TempBoard.Move(x1, y1, x2, y2);
-			threads.emplace_back(obertka, TempBoard, MOVE, 0, 0, 0, depth - 1, -100, 100, !turn, result, i);
-		}
-	}
-
-	for (auto& thread : threads) {
-		thread.join();
-	}
-
-	for (int i = 0; i < len; i++) {
-		moves[i].asses = result[i];
-	}
-
-	for (int i = 0; i < len; i++) {
-		for (int j = len - 1; j > i; j--) {
-			if (moves[j].asses < moves[j - 1].asses) {
-				Move temp = moves[j];
-				moves[j] = moves[j - 1];
-				moves[j - 1] = temp;
-			}
-		}
-	}
-	if (turn) {
-		for (int i = 0; i < len / 2; i++) {
-			Move temp = moves[i];
-			moves[i] = moves[len - i - 1];
-			moves[len - i - 1] = temp;
-		}
-	}
-
-}
-#else
 void Moves::sort(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vector, int depth, bool turn, int* nodes) {
-	float result[100];
 
 	for (mytype i = 0; i < len; i++) {
 		TField TempBoard;
@@ -226,11 +142,11 @@ void Moves::sort(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vecto
 		mytype tempVector = vector;
 
 		mytype x1, y1, x2, y2;
-		mytype* temp = getCoord(i);
-		x1 = temp[0];
-		y1 = temp[1];
-		x2 = temp[2];
-		y2 = temp[3];
+		elemMove temp = moves[i];
+		x1 = temp.Coord[0];
+		y1 = temp.Coord[1];
+		x2 = temp.Coord[2];
+		y2 = temp.Coord[3];
 		if (ntb) {
 			if (TempBoard[x1][y1] >= 3) {
 				DamkaBeat(TempBoard, x1, y1, x2, y2, tempVector);
@@ -240,12 +156,10 @@ void Moves::sort(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vecto
 			}
 			tempVector = GetMode(x1, y1, x2, y2, tempVector);
 			moves[i].asses = mmAB(TempBoard, BEAT, x2, y2, tempVector, depth, -100, 100, turn, nodes);
-			result[i] = moves[i].asses;
 		}
 		else {
 			Move(TempBoard, x1, y1, x2, y2);
 			moves[i].asses = mmAB(TempBoard, MOVE, 0, 0, 0, depth - 1, -100, 100, !turn, nodes);
-			result[i] = moves[i].asses;
 		}
 	}
 	for (int i = 0; i < len; i++) {
@@ -264,7 +178,5 @@ void Moves::sort(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vecto
 			moves[len - i - 1] = temp;
 		}
 	}
-
 }
-#endif
 
