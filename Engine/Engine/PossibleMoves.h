@@ -9,6 +9,7 @@ enum MOVE_TYPE {
 };
 
 extern "C" void asmAdd(mytype[100][4], mytype*, mytype, mytype, mytype, mytype);
+extern "C" void FillDamkaMoves(TField&, mytype[100][4], mytype*, mytype, mytype);
 
 class PossibleMoves {
 private:
@@ -16,7 +17,7 @@ private:
     TField field;
     void FillDamkaBeatsDiag(mytype x0, mytype y0, mytype x, mytype y, mytype mode);
     void FillDamkaBeatsForOne(mytype x, mytype y, mytype mode);
-    void FillDamkaMoves(mytype x, mytype y);
+    //void FillDamkaMoves(mytype x, mytype y);
     void FillBeatsForOne(mytype x, mytype y);
     void FillMoves();
 public:

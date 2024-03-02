@@ -1,8 +1,7 @@
 #pragma once
 
 #define mytype signed char
-#define boardtype signed char
-typedef boardtype TField[8][8];
+typedef mytype TField[8][8];
 
 extern "C" mytype GetMode(mytype x1, mytype y1, mytype x2, mytype y2, mytype mode);
 extern "C" bool CheckCoord(mytype x1, mytype y1);

@@ -74,6 +74,7 @@ void PossibleMoves::FillDamkaBeatsDiag(mytype x0, mytype y0, mytype x, mytype y,
 		}
 	}
 }	
+/*
 void PossibleMoves::FillDamkaMoves(mytype x, mytype y) {
 	mytype x0 = x;
 	mytype y0 = y;
@@ -96,6 +97,7 @@ void PossibleMoves::FillDamkaMoves(mytype x, mytype y) {
 		asmAdd(AllMoves, &len, x0, y0, x, y);
 	}
 }
+*/
 PossibleMoves::PossibleMoves(TField& tfield, bool tturn) {
 	BCopy(field, tfield);
 	len = 0;
@@ -191,7 +193,7 @@ void PossibleMoves::FillMoves() {
 					}
 				}
 				else if (field[x][y] == temp + 2) {
-					FillDamkaMoves(x, y);
+					FillDamkaMoves(field, AllMoves, &len, x, y);
 				}
 			}
 		}

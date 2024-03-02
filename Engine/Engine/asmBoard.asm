@@ -27,6 +27,7 @@ AssessS   BYTE  8,  0,  9,  0,  9,  0,  12, 0
 		  BYTE  12, 0,  9,  0,  9,  0,  14, 0
 		  BYTE  0,  8,  0,  9,  0,  10, 0,  10
 
+
 .CODE
 
 CheckCoord PROC
@@ -529,5 +530,3 @@ getAssess ENDP
 ;---------------------------------------------- getAssess END
 
 END
-
-
