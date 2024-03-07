@@ -9,14 +9,14 @@ InitB     BYTE  1, 0, 1, 0, 0, 0, 2, 0
     	  BYTE  1, 0, 1, 0, 0, 0, 2, 0 
     	  BYTE  0, 1, 0, 0, 0, 2, 0, 2
 
-AssessD   BYTE  10, 0,  8,  0,  8,  0,  8,  0
-		  BYTE  0,  10, 0,  6,  0,  6,  0,  8
-		  BYTE  8,  0,  10, 0,  6,  0,  6,  0
-		  BYTE  0,  6,  0,  10, 0,  6,  0,  8
-		  BYTE  8,  0,  6,  0,  10, 0,  6,  0 
-		  BYTE  0,  6,  0,  6,  0,  10, 0,  8
-		  BYTE  8,  0,  6,  0,  6,  0,  10, 0 
-		  BYTE  0,  8,  0,  8,  0,  8,  0,  10
+AssessD   BYTE  14, 0,  8,  0,  8,  0,  8,  0
+		  BYTE  0,  12, 0,  6,  0,  6,  0,  8
+		  BYTE  8,  0,  12, 0,  6,  0,  6,  0
+		  BYTE  0,  6,  0,  12, 0,  6,  0,  8
+		  BYTE  8,  0,  6,  0,  12, 0,  6,  0 
+		  BYTE  0,  6,  0,  6,  0,  12, 0,  8
+		  BYTE  8,  0,  6,  0,  6,  0,  12, 0 
+		  BYTE  0,  8,  0,  8,  0,  8,  0,  14
 
 AssessS   BYTE  8,  0,  9,  0,  9,  0,  12, 0
 		  BYTE  0,  8,  0,  9,  0,  10, 0,  10
@@ -528,5 +528,461 @@ ret
 getAssess ENDP
 
 ;---------------------------------------------- getAssess END
+
+;---------------------------------------------- NTBDamka
+
+NTBDamka PROC
+push rbp
+mov rbp, rsp
+
+;r15 - temp
+;r14 - y0
+;r13 - x0
+
+;r12 - y
+;r11 - x
+;r10 - mode
+;rsi - field
+;rdi - field[xi][yi]
+
+
+mov rsi, rcx
+mov rdi, rcx
+
+xor r15, r15
+mov r15b, r9b
+inc r15
+
+mov r11b, dl
+mov r12b, r8b
+and r11, 0FFh
+and r12, 0FFh
+
+mov r13, r11
+mov r14, r12
+mov r10b, byte ptr[rbp+48]
+
+cmp r10b, 4
+je next4
+
+xor rax, rax
+mov al, 8
+mul r11b
+add al, r12b
+add rdi, rax
+
+while4:
+	inc r11b
+	inc r12b
+
+	cmp r11b, 7
+	jg endwhile4
+
+	cmp r12b, 7
+	jg endwhile4
+
+	add rdi, 9
+	cmp byte ptr[rdi], 0
+	jne endwhile4
+	jmp while4
+
+endwhile4:
+
+	cmp r11b, 7
+	jge next4
+	cmp r12b, 7
+	jge next4
+		
+	mov r9b, r15b
+	cmp byte ptr[rdi], r9b
+	je nextif4
+
+	add r9b, 2
+	cmp byte ptr[rdi], r9b
+	je nextif4
+	jmp next4
+	
+	nextif4:
+		
+		add rdi, 9
+		cmp byte ptr[rdi], 0
+		jne next4
+		mov rax, 1
+		jmp Ending
+
+next4:
+
+cmp r10b, 3
+je next3
+
+mov r11, r13
+mov r12, r14
+mov rdi, rsi
+
+xor rax, rax
+mov al, 8
+mul r11b
+add al, r12b
+add rdi, rax
+
+while3:
+	dec r11b
+	inc r12b
+
+	cmp r11b, 0
+	jl endwhile3
+
+	cmp r12b, 7
+	jg endwhile3
+
+	sub rdi, 7
+	cmp byte ptr[rdi], 0
+	jne endwhile3
+	jmp while3
+
+endwhile3:
+
+	cmp r11b, 0
+	jle next3
+	cmp r12b, 7
+	jge next3
+		
+	mov r9b, r15b
+	cmp byte ptr[rdi], r9b
+	je nextif3
+
+	add r9b, 2
+	cmp byte ptr[rdi], r9b
+	je nextif3
+	jmp next3
+	
+	nextif3:
+		
+		sub rdi, 7
+		cmp byte ptr[rdi], 0
+		jne next3
+		mov rax, 1
+		jmp Ending
+
+next3:
+
+cmp r10b, 2
+je next2
+
+mov r11, r13
+mov r12, r14
+mov rdi, rsi
+
+xor rax, rax
+mov al, 8
+mul r11b
+add al, r12b
+add rdi, rax
+
+while2:
+	inc r11b
+	dec r12b
+
+	cmp r11b, 7
+	jg endwhile2
+
+	cmp r12b, 0
+	jl endwhile2
+
+	add rdi, 7
+	cmp byte ptr[rdi], 0
+	jne endwhile2
+	jmp while2
+
+endwhile2:
+
+	cmp r11b, 7
+	jge next2
+	cmp r12b, 0
+	jle next2
+
+	mov r9b, r15b
+	cmp byte ptr[rdi], r9b
+	je nextif2
+
+	add r9b, 2
+	cmp byte ptr[rdi], r9b
+	je nextif2
+	jmp next2
+	
+	nextif2:
+		
+		add rdi, 7
+		cmp byte ptr[rdi], 0
+		jne next2
+		mov rax, 1
+		jmp Ending
+
+next2:
+
+cmp r10b, 1
+je next1
+
+mov r11, r13
+mov r12, r14
+mov rdi, rsi
+
+xor rax, rax
+mov al, 8
+mul r11b
+add al, r12b
+add rdi, rax
+
+while1:
+	dec r11b
+	dec r12b
+
+	cmp r11b, 0
+	jl endwhile1
+
+	cmp r12b, 0
+	jl endwhile1
+
+	sub rdi, 9
+	cmp byte ptr[rdi], 0
+	jne endwhile1
+	jmp while1
+
+endwhile1:
+
+	cmp r11b, 0
+	jle next1
+	cmp r12b, 0
+	jle next1
+		
+	mov r9b, r15b
+	cmp byte ptr[rdi], r9b
+	je nextif1
+
+	add r9b, 2
+	cmp byte ptr[rdi], r9b
+	je nextif1
+	jmp next1
+	
+	nextif1:
+		
+		sub rdi, 9
+		cmp byte ptr[rdi], 0
+		jne next1
+		mov rax, 1
+		jmp Ending
+
+next1:
+
+mov rax, 0
+Ending:
+
+pop rbp
+ret
+NTBDamka ENDP
+
+;---------------------------------------------- NTBDamka END
+
+
+;---------------------------------------------- DamkaBeat
+
+DamkaBeat PROC
+push rbp
+mov rbp, rsp
+
+;r15 - mode
+;r14 - y2
+;r13 - x2
+;r12 - y1
+;r11 - x1
+
+mov r15b, byte ptr[rbp + 56]
+mov r14b, byte ptr[rbp + 48]
+mov r13b, r9b
+mov r12b, r8b
+mov r11b, dl
+mov rsi, rcx
+mov rdi, rcx
+xor rcx, rcx
+
+xor rax, rax
+mov al, 8
+mul r11b
+add al, r12b
+add rsi, rax
+
+xor rax, rax
+mov al, 8
+mul r13b
+add al, r14b
+add rdi, rax 
+
+mov al, byte ptr[rsi]
+mov byte ptr[rdi], al
+
+cmp r15b, 1
+jne next1
+
+mov cl, r13b
+add cl, r14b
+sub cl, r11b
+sub cl, r12b
+
+loop1:
+	cmp cl, 0
+	jle next
+	mov byte ptr[rsi], 0
+	add rsi, 9
+	inc r11b
+	inc r12b
+	sub cl, 2
+	jmp loop1
+
+next1:
+cmp r15b, 2
+jne next2
+
+mov cl, r11b
+add cl, r14b
+sub cl, r12b
+sub cl, r13b
+
+loop2:	
+	cmp cl, 0
+	jle next
+	mov byte ptr[rsi], 0
+	sub rsi, 7
+	dec r11b
+	inc r12b
+	sub cl, 2
+	jmp loop2
+
+next2:
+cmp r15b, 3
+jne next3
+
+mov cl, r13b
+add cl, r12b
+sub cl, r11b
+sub cl, r14b
+
+loop3:
+	cmp cl, 0
+	jle next
+	mov byte ptr[rsi], 0
+	add rsi, 7
+	inc r11b
+	dec r12b
+	sub cl, 2
+	jmp loop3
+
+next3:
+cmp r15b, 4
+jne next
+
+mov cl, r11b
+add cl, r12b
+sub cl, r13b
+sub cl, r14b
+
+loop4:
+	cmp cl, 0
+	jle next
+	mov byte ptr[rsi], 0
+	sub rsi, 9
+	dec r11b
+	dec r12b
+	sub cl, 2
+	jmp loop4
+
+next:
+	xor rcx, rcx
+	cmp r11b, r13b
+	jl x2
+	cmp r12b, r14b
+	jl x1y2
+
+	mov cl, r11b
+	sub cl, r13b
+loop01:
+	test cl, cl
+	jz Ending
+	mov byte ptr[rsi], 0
+	sub rsi, 9
+	dec cl
+	jmp loop01
+
+x1y2:
+
+	mov cl, r11b
+	sub cl, r13b
+loop02:
+	test cl, cl
+	jz Ending
+	mov byte ptr[rsi], 0
+	sub rsi, 7
+	dec cl
+	jmp loop02
+
+	
+x2:
+	cmp r12b, r14b
+	jl x2y2
+
+	mov cl, r13b
+	sub cl, r11b
+loop03:
+	test cl, cl
+	jz Ending
+	mov byte ptr[rsi], 0
+	add rsi, 7
+	dec cl
+	jmp loop03
+
+x2y2:
+	mov cl, r13b
+	sub cl, r11b
+loop04:
+	test cl, cl
+	jz Ending
+	mov byte ptr[rsi], 0
+	add rsi, 9
+	dec cl
+	jmp loop04
+	
+
+Ending:
+
+pop rbp
+ret
+DamkaBeat ENDP
+
+;---------------------------------------------- DamkaBeat END
+
+
+;---------------------------------------------- amountOfDamka
+
+amountOfDamka PROC
+push rbp
+mov rbp, rsp
+mov rsi, rcx
+
+xor rax, rax
+mov rcx, 64
+Metka:
+cmp byte ptr[rsi], 2
+jle notDamka
+
+inc rax
+
+notDamka:
+inc rsi
+loop Metka
+
+pop rbp
+ret
+amountOfDamka ENDP
+
+;---------------------------------------------- amountOfDamka END
 
 END

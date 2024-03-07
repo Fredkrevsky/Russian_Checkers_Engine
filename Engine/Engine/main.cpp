@@ -5,7 +5,7 @@
 
 using namespace sf;
 
-const int DEPTH = 11;
+const int DEPTH = 12;
 
 Font font;
 bool open = true;
@@ -14,7 +14,7 @@ mytype depth;
 
 const int menuH = 100;
 const int tileSize = 100;
-const int leftW = (1920 - 8 * tileSize) / 2 - 100;
+const int leftW = 0;//(1920 - 8 * tileSize) / 2 - 100;
 const int winH = tileSize * 8 + menuH;
 const int winW = tileSize * 8 + 50;
 
@@ -603,14 +603,14 @@ public:
                         ch2.isSelected = false;
                         ch3.isSelected = false;
                         ch4.isSelected = false;
-                        depth = 8;
+                        depth = 6;
                     }
                     else if (ch2.isPressed(pos)) {
                         ch1.isSelected = false;
                         ch2.isSelected = true;
                         ch3.isSelected = false;
                         ch4.isSelected = false;
-                        depth = 9;
+                        depth = 8;
                     }
                     else if (ch3.isPressed(pos)) {
                         ch1.isSelected = false;
@@ -624,7 +624,7 @@ public:
                         ch2.isSelected = false;
                         ch3.isSelected = false;
                         ch4.isSelected = true;
-                        depth = 11;
+                        depth = 12;
                     }
                     else if (startB.isPressed(pos)) {
                         win.close();
@@ -829,7 +829,7 @@ int main()
             form.poll();
         }
         if (open) {
-            RenderWindow main(VideoMode(1920, 1080), "VOBLA", Style::Fullscreen);
+            RenderWindow main(VideoMode(1000, 1000), "VOBLA", Style::Close);
             main.setIcon(512, 512, icon.getPixelsPtr());
             main.setFramerateLimit(60);
             main.setVerticalSyncEnabled(true);

@@ -17,7 +17,6 @@ private:
     TField field;
     void FillDamkaBeatsDiag(mytype x0, mytype y0, mytype x, mytype y, mytype mode);
     void FillDamkaBeatsForOne(mytype x, mytype y, mytype mode);
-    //void FillDamkaMoves(mytype x, mytype y);
     void FillBeatsForOne(mytype x, mytype y);
     void FillMoves();
 public:

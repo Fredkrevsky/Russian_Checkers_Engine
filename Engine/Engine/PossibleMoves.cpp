@@ -22,7 +22,7 @@ void PossibleMoves::FillDamkaBeatsDiag(mytype x0, mytype y0, mytype x, mytype y,
 			}
 		}
 	}
-	if (mode == 2) {
+	else if (mode == 2) {
 		while (CheckCoord(--x, ++y)) {
 			if (field[x][y] != 0) {
 				break;
@@ -39,7 +39,7 @@ void PossibleMoves::FillDamkaBeatsDiag(mytype x0, mytype y0, mytype x, mytype y,
 			}
 		}
 	}
-	if (mode == 3) {
+	else if (mode == 3) {
 		while (CheckCoord(++x, --y)) {
 			if (field[x][y] != 0) {
 				break;
@@ -56,7 +56,7 @@ void PossibleMoves::FillDamkaBeatsDiag(mytype x0, mytype y0, mytype x, mytype y,
 			}
 		}
 	}
-	if (mode == 4) {
+	else if (mode == 4) {
 		while (CheckCoord(--x, --y)) {
 			if (field[x][y] != 0) {
 				break;
@@ -74,30 +74,6 @@ void PossibleMoves::FillDamkaBeatsDiag(mytype x0, mytype y0, mytype x, mytype y,
 		}
 	}
 }	
-/*
-void PossibleMoves::FillDamkaMoves(mytype x, mytype y) {
-	mytype x0 = x;
-	mytype y0 = y;
-	while (CheckCoord(++x, ++y) && (field[x][y] == 0)) {
-		asmAdd(AllMoves, &len, x0, y0, x, y);
-	}
-	x = x0;
-	y = y0;
-	while (CheckCoord(--x, ++y) && (field[x][y] == 0)) {
-		asmAdd(AllMoves, &len, x0, y0, x, y);
-	}
-	x = x0;
-	y = y0;
-	while (CheckCoord(++x, --y) && (field[x][y] == 0)) {
-		asmAdd(AllMoves, &len, x0, y0, x, y);
-	}
-	x = x0;
-	y = y0;
-	while (CheckCoord(--x, --y) && (field[x][y] == 0)) {
-		asmAdd(AllMoves, &len, x0, y0, x, y);
-	}
-}
-*/
 PossibleMoves::PossibleMoves(TField& tfield, bool tturn) {
 	BCopy(field, tfield);
 	len = 0;
