@@ -55,7 +55,6 @@ public:
     TField field;
     float asses;
     Engine(mytype depth);
-    ~Engine();
     MOVE_ASSES status;
     float accuracy;
     MOVE_RESULT PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2);

@@ -36,9 +36,6 @@ Engine::Engine(mytype dep) {
 	oldasses = 0;
 	isSorted = false;
 }
-Engine::~Engine() {		
-
-}
 MOVE_RESULT Engine::PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2) {
 	if (!isActual) {
 		moves.fill(field, type, x, y, vector, turn);

@@ -5,38 +5,39 @@ float mmAB(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vector, int
 
 	(*nodes)++;
 
-	PossibleMoves moves(field, turn);
-	moves.fill(type, x, y, vector);
+	TAM AllMoves;
+	mytype len = 0;
+	bool ntb = PMFill(field, type, AllMoves, &len, turn, x, y, vector);
 
-	if (type == BEAT && moves.len == 0) {
+	if (type && len == 0) {
 		return mmAB(field, MOVE, 0, 0, 0, depth - 1, alpha, beta, !turn, nodes);
 	}
 
-	if (moves.len == 0) {
+	if (len == 0) {
 		if (turn) {
 			return -100;
 		}
 		return 100;
 	}
 
-	if ((depth <= 0) && (!moves.ntb)) {
+	if ((depth <= 0) && (!ntb)) {
 		return (float)getAssess(field)/10;
 	}
 	if (turn) {
 		float maxEval = -100;
 		float eval;
-		for (int i = 0; i < moves.len; i++) {
+		for (int i = 0; i < len; i++) {
 			mytype tempVector = vector;
 			TField TempBoard;
 			BCopy(TempBoard, field);
 
 			mytype x1, y1, x2, y2;
-			mytype* temp = moves.AllMoves[i];
+			mytype* temp = AllMoves[i];
 			x1 = temp[0];
 			y1 = temp[1];
 			x2 = temp[2];
 			y2 = temp[3];
-			if (moves.ntb) {
+			if (ntb) {
 				if (TempBoard[x1][y1] >= 3) {
 					DamkaBeat(TempBoard, x1, y1, x2, y2, tempVector);
 				}
@@ -61,18 +62,18 @@ float mmAB(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vector, int
 	else {
 		float minEval = 100;
 		float eval;
-		for (int i = 0; i < moves.len; i++) {
+		for (int i = 0; i < len; i++) {
 			mytype tempVector = vector;
 			TField TempBoard;
 			BCopy(TempBoard, field);
 
 			mytype x1, y1, x2, y2;
-			mytype* temp = moves.AllMoves[i];
+			mytype* temp = AllMoves[i];
 			x1 = temp[0];
 			y1 = temp[1];
 			x2 = temp[2];
 			y2 = temp[3];
-			if (moves.ntb) {
+			if (ntb) {
 				if (TempBoard[x1][y1] >= 3) {
 					DamkaBeat(TempBoard, x1, y1, x2, y2, tempVector);
 				}
@@ -102,16 +103,15 @@ Moves::Moves() {
 	ntb = false;
 }
 void Moves::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vector, bool turn) {
-	PossibleMoves PM(field, turn);
-	PM.fill(type, x, y, vector);
-	ntb = PM.ntb;
-	len = PM.len;
+	TAM AllMoves;
+	len = 0;
+	ntb = PMFill(field, type, AllMoves, &len, turn, x, y, vector);
 	moves.clear();
 
 	elemMove temp;
 	for (int i = 0; i < len; i++) {
 		for (int j = 0; j < 4; j++) {
-			temp.Coord[j] = PM.AllMoves[i][j];
+			temp.Coord[j] = AllMoves[i][j];
 		}
 		temp.asses = 0;
 		moves.push_back(temp);

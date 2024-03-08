@@ -1,29 +1,27 @@
 #pragma once
 #include "Board.h"
+#define mytype signed char
+typedef mytype TField[8][8];
+typedef mytype TAM[100][4];
 
-typedef mytype Coord[4];
-
-enum MOVE_TYPE {
-    MOVE,
-    BEAT,
+typedef enum MOVE_TYPE {
+	MOVE,
+	BEAT
 };
 
-extern "C" void asmAdd(mytype[100][4], mytype*, mytype, mytype, mytype, mytype);
-extern "C" void FillDamkaMoves(TField&, mytype[100][4], mytype*, mytype, mytype);
+extern "C" mytype GetMode(mytype, mytype, mytype, mytype, mytype);
+extern "C" bool CheckCoord(mytype, mytype);
+extern "C" void BInit(TField&);
+extern "C" void BCopy(TField&, TField&);
+extern "C" void Move(TField&, mytype, mytype, mytype, mytype);
+extern "C" void Beat(TField&, mytype, mytype, mytype, mytype);
+extern "C" bool SMCheck(TField&, mytype, mytype, mytype, mytype);
+extern "C" bool SBCheck(TField&, mytype, mytype, mytype, mytype, bool);
+extern "C" int getAssess(TField&);
+extern "C" bool NTBDamka(TField&, mytype, mytype, bool, mytype);
+extern "C" void DamkaBeat(TField&, mytype, mytype, mytype, mytype, mytype);
+extern "C" mytype amountOfDamka(TField&);
 
-class PossibleMoves {
-private:
-    bool turn;
-    TField field;
-    void FillDamkaBeatsDiag(mytype x0, mytype y0, mytype x, mytype y, mytype mode);
-    void FillDamkaBeatsForOne(mytype x, mytype y, mytype mode);
-    void FillBeatsForOne(mytype x, mytype y);
-    void FillMoves();
-public:
-    mytype AllMoves[100][4];
-    mytype len;
-    PossibleMoves(TField& field, bool turn);
-    bool ntb;
-    void fill(MOVE_TYPE type, mytype x, mytype y, mytype vector);
-};
+bool NTBDamkaOneMore(TField& field, mytype x, mytype y, bool turn, mytype mode);
 
+bool PMFill(TField&, MOVE_TYPE, TAM&, mytype*, bool type, mytype x, mytype y, mytype vector);
