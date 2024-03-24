@@ -1,5 +1,4 @@
 #pragma once
-#include "Board.h"
 #define mytype signed char
 typedef mytype TField[8][8];
 typedef mytype TAM[100][4];

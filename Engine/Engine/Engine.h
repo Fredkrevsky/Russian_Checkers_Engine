@@ -1,23 +1,19 @@
 #pragma once
-
-#include "AT.h"
+#include "PossibleMoves.h"
+#include <algorithm>
+#include <vector>
 
 //Время обработки одного узла = 5.61224 * 10^(-6) секунд
 
-//Обновлено: время обработки одного узла: 7,1 * 10^(-7) секунд
+//Обновлено: время обработки одного узла: 3,9 * 10^(-7) секунд
 
-//Время просчета для глубин       AT
-//1:   < 1 мс                     < 1 мс     
-//2:   < 1 мс                     < 1 мс
-//3:   1 - 5 мс                   < 1 мс
-//4:   5 - 20 мс                  2 - 15 мс 
-//5:   20 - 200 мс                5 - 30 мс
-//6:   200 мс - 2 с               30 - 100 мс
-//7:   2 - 15 с                   100 - 200 мс
-//8:   15 с - 2 мин 
-//9:   2+ мин
-//10:  12+ мин
-
+typedef struct _MoveData {
+    TField field;
+    MOVE_TYPE type;
+    mytype x, y, vector;
+    mytype coord[4];
+    float assess;
+} MoveData;
 
 enum MOVE_RESULT {
     INVALID_COORD,
@@ -28,36 +24,19 @@ enum MOVE_RESULT {
     LOSE,
 };
 
-enum MOVE_ASSES {
-    COMPULSORY,
-    BRILLIANT,
-    STRONGEST,
-    NORMAL,
-    MISTAKE,
-    BLUNDER
-};
-
 class Engine {
 private:
-    mytype depth;
-    bool turn;
-    bool isActual;
-    MOVE_TYPE type;
-    mytype vector;
-    mytype x, y;
-    MOVE_ASSES getStatus(mytype index, float old);
-    float oldasses;
-    bool isSorted;
+    mytype find(mytype x1, mytype y1, mytype x2, mytype y2);
+    void fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vector, int depth, bool turn);
+    void fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vector, bool turn);
+    float mmAB(TField& field, mytype x, mytype y, mytype vector, int depth, float alpha, float beta, bool turn);
+    float mmAB(TField& field, int depth, float alpha, float beta, bool turns);
 public:
-    int nodes;
-    Moves moves;
-    int duration;
-    TField field;
-    float asses;
-    Engine(mytype depth);
-    MOVE_ASSES status;
-    float accuracy;
-    MOVE_RESULT PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2);
-    MOVE_RESULT EngineMove();
+    int duration = 0;
+    std::vector<MoveData> moves;
+    MOVE_RESULT PlayerMove(MoveData* data, bool turn);
+    MOVE_RESULT EngineMove(MoveData* data, bool turn, mytype depth);
 };
+
+
 
