@@ -1,7 +1,5 @@
 #include "controls.h"
 
-const int tileSize = 100;
-
 void TBoard::redReset() {
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
@@ -10,16 +8,20 @@ void TBoard::redReset() {
     }
 }
 TBoard::TBoard() {
+    x1 = y1 = x2 = y2 = 0;
+    comment = FORCED;
     x = 0;
     y = 0;
     flipped = false;
+
+    best.loadFromFile("Image/best.png");
+    blunder.loadFromFile("Image/blunder.png");
+    forced.loadFromFile("Image/forced.png");
+    good.loadFromFile("Image/good.png");
+    inac.loadFromFile("Image/inaccurasy.png");
 }
-void TBoard::setField(TField toSet) {
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
-            field[i][j] = toSet[i][j];
-        }
-    }
+void TBoard::setField(TField& toSet) {
+    BCopy(field, toSet);
     if (flipped) {
         flip();
         flipped = true;
@@ -124,12 +126,38 @@ void TBoard::draw(RenderWindow& win) {
             }
         }
     }
+    if (x1 || y1 || x2 || y2) {
+        Sprite sprite;
+        switch (comment) {
+            case BEST: sprite.setTexture(best); break;
+            case BLUNDER: sprite.setTexture(blunder); break;
+            case FORCED: sprite.setTexture(forced); break;
+            case INACCURACY: sprite.setTexture(inac); break;
+            case GOOD: sprite.setTexture(good); break;
+        }
+        int tempx, tempy;
+        if (!flipped) {
+            tempx = x + (x2 + 1) * tileSize - 25;
+            tempy = y + (7 - y2) * tileSize - 25;
+        }
+        else {
+            tempx = x + (8 - x2) * tileSize - 25;
+            tempy = y + y2 * tileSize - 25;
+        }
+        sprite.setPosition(tempx, tempy);
+
+        float scaleFactor = 50.0f / sprite.getLocalBounds().width;
+        sprite.setScale(scaleFactor, scaleFactor);
+        win.draw(sprite);
+    }
 }
-
-
-const int FontSize = 24;
-extern Font font;
-extern Font font;
+void TBoard::setComment(MOVE_STATUS tcomment, mytype tx1, mytype ty1, mytype tx2, mytype ty2) {
+    x1 = tx1;
+    y1 = ty1;
+    x2 = tx2;
+    y2 = ty2;
+    comment = tcomment;
+}
 
 
 TObject::TObject() {
@@ -171,13 +199,13 @@ TClickable::TClickable() : TObject() {}
 
 
 void TButton::normText() {
-    text.setPosition(x + (width - len * FontSize / 2) / 2, y + (height - FontSize) / 2 - 4);
+    text.setPosition(x + (width - len * fontSize / 2) / 2 + 4, y + (height - fontSize) / 2 - 4);
 }
 TButton::TButton() : TClickable() {
     len = 0;
     text.setPosition(0, 0);
     text.setFont(font);
-    text.setCharacterSize(FontSize);
+    text.setCharacterSize(fontSize);
     text.setFillColor(Color::Black);
 }
 void TButton::setText(std::string toSet) {
@@ -254,7 +282,7 @@ TBar::TBar() : TObject() {
     text.setFont(font);
     text.setFillColor(Color::Black);
     text.setPosition(0, 0);
-    text.setCharacterSize(FontSize);
+    text.setCharacterSize(fontSize);
     text.setString("");
 
 }
@@ -276,7 +304,7 @@ inline void TProgressBar::setWidth() {
     posX = width * value;
 }
 inline void TProgressBar::setTextPosition() {
-    text.setPosition(x + 4, y + (height - FontSize) / 2 - 3);
+    text.setPosition(x + 4, y + (height - fontSize) / 2 - 3);
 }
 inline void TProgressBar::setString() {
     int toSet = std::round(abs(value) * 100);
@@ -316,20 +344,24 @@ void TProgressBar::setValue(float toSet) {
 
 inline void TAssessBar::setHeight() {
     if (abs(value) < 0.2) {
-        posX = width / 2;
+        posX = height / 2;
     }
     else if (value > 5) {
-        posX = width;
+        posX = height;
     }
     else if (value < -5) {
         posX = 0;
     }
     else {
-        posX = width * (value + 5) / 10;
+        posX = height * (value + 5) / 10;
     }
+    posX = height - posX;
+    first.setSize(Vector2f(width, posX));
+    second.setPosition(x, y + posX);
+    second.setSize(Vector2f(width, height - posX));
 }
 inline void TAssessBar::setTextColor() {
-    if (value > 0) {
+    if (value < 0) {
         text.setFillColor(second.getFillColor());
     }
     else {
@@ -338,10 +370,10 @@ inline void TAssessBar::setTextColor() {
 }
 inline void TAssessBar::setTextPosition() {
     if (value < 0) {
-        text.setPosition(x + width - 40, y + (height - FontSize) / 2 - 3);
+        text.setPosition(x + 8, y + 4);
     }
     else {
-        text.setPosition(x + 4, y + (height - FontSize) / 2 - 3);
+        text.setPosition(x + 8, y + height - fontSize - 4);
     }
 }
 inline void TAssessBar::setString() {
@@ -353,15 +385,16 @@ inline void TAssessBar::setString() {
         }
         else {
             result = std::to_string(toSet);
-            int dot = result.find(',');
+            int dot = result.find('.');
             result = result.substr(0, dot + 2);
-            result[dot] = '.';
         }
     }
     text.setString(result);
 }
 TAssessBar::TAssessBar() : TBar() {
     isFlip = false;
+    text.setCharacterSize(fontSize - 6);
+    text.setOutlineThickness(1);
 }
 void TAssessBar::setPos(int tx, int ty) {
     TObject::setPos(tx, ty);
@@ -383,17 +416,16 @@ void TAssessBar::setValue(float toSet) {
     else {
         value = toSet;
     }
-
     setHeight();
     setString();
     setTextColor();
     setTextPosition();
-    first.setSize(Vector2f(width, posX));
-    second.setPosition(x, y + posX);
-    second.setSize(Vector2f(width, height - posX));
 }
 void TAssessBar::flip() {
     isFlip = !isFlip;
+    value = -value;
+    setHeight();
+    setTextPosition();
     Color temp;
     temp = first.getFillColor();
     first.setFillColor(second.getFillColor());

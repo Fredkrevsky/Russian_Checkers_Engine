@@ -7,8 +7,29 @@ using namespace sf;
 typedef mytype Coord[4];
 
 extern Font font;
+const int fontSize = 24;
+const int tileSize = 100;
 
-
+class TLabel {
+    Text text;
+public: 
+    TLabel() {
+        text.setString("");
+        text.setFont(font);
+        text.setCharacterSize(fontSize);
+        text.setFillColor(Color::Black);
+        text.setPosition(0, 0);
+    }
+    void setText(std::string txt) {
+        text.setString(txt);
+    }
+    void setPos(int x, int y) {
+        text.setPosition(x, y);
+    }
+    void draw(RenderWindow& win) {
+        win.draw(text);
+    }
+};
 
 class TObject
 {
@@ -112,31 +133,59 @@ class TBoard {
     TField field = {};
     bool red[8][8] = {};
     void redReset();
+    mytype x1, y1, x2, y2;
+    MOVE_STATUS comment;
+
+    Texture forced, best, good, inac, blunder;
+
 public:
     TBoard();
-    void setField(TField toSet);
+    void setField(TField& toSet);
     void setPos(int x0, int y0);
     void getCoord(Vector2f start, Vector2f end, mytype* coord);
     void redSet(Vector2f& start);
-
-
     void flip();
     void draw(RenderWindow& win);
+    void setComment(MOVE_STATUS comment, mytype x1, mytype y1, mytype x2, mytype y2);
 };
 
 class GameController {
     Engine engine;
     bool turn;
-    int curr, head;
+
 
     MOVE_TYPE type;
     mytype x, y, vector;
 
+    void getData(MoveData& source) {
+        assess = source.assess;
+        BCopy(field, source.field);
+        type = source.type;
+        vector = source.vector;
+        x = source.x;
+        y = source.y;
+    }
+    void setData(MoveData& dest) {
+        dest.assess = assess;
+        dest.x = x;
+        dest.y = y;
+        BCopy(dest.field, field);
+        BCopy(dest.oldfield, field);
+        dest.turn = turn;
+        dest.type = type;
+        dest.vector = vector;
+    }
+
 public:
+
     TField field;
     float assess;
+    int curr, head;
+
     std::vector<MoveData> gameMoves;
     GameController() {
+        type = MOVE;
+        x = y = vector = 0;
         turn = true;
         curr = 0;
         head = 0;
@@ -144,45 +193,35 @@ public:
         BInit(field);
 
         MoveData temp;
-        BCopy(temp.field, field);
-        temp.assess = 0;
+        setData(temp);
         temp.coord[0] = 0;
         temp.coord[1] = 0;
         temp.coord[2] = 0;
         temp.coord[3] = 0;
-        temp.type = MOVE;
-        temp.vector = 0;
 
         gameMoves.push_back(temp);
     }
     MOVE_RESULT PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2) {
         if (curr == head) {
+
             MoveData data;
-            data.assess = 0;
+            setData(data);
             data.coord[0] = x1;
             data.coord[1] = y1;
             data.coord[2] = x2;
             data.coord[3] = y2;
-            data.x = x;
-            data.y = y;
 
-            BCopy(data.field, field);
-            data.type = type;
-            data.vector = vector;
-
-            MOVE_RESULT result = engine.PlayerMove(&data, turn);
+            MoveData temp = data;
+            MOVE_RESULT result = engine.PlayerMove(data);
             if (result != INVALID_COORD) {
-                BCopy(field, data.field);
-                type = data.type;
-                vector = data.vector;
-                x = data.coord[2];
-                y = data.coord[3];
-                gameMoves.push_back(data);
-                head++;
-                curr++;
+                BCopy(temp.field, data.field);
+                gameMoves.push_back(temp);
+                getData(data);
                 if (result == SUCCESS) {
                     turn = !turn;
                 }
+                head++;
+                curr++;
             }
             return result;
         }
@@ -191,27 +230,23 @@ public:
         getCurr();
 
         MoveData data;
-        data.assess = 0;
-        data.x = x;
-        data.y = y;
-        BCopy(data.field, field);
-        data.type = type;
-        data.vector = vector;
+        setData(data);
 
-        MOVE_RESULT result = engine.EngineMove(&data, turn, depth);
-        if (result == SUCCESS) {
-
-            gameMoves.push_back(data);
+        MoveData temp = data;
+        MOVE_RESULT result = engine.EngineMove(data, depth);
+        if (result == ONE_MORE || result == SUCCESS) {
+            BCopy(temp.field, data.field);
+            temp.coord[0] = data.coord[0];
+            temp.coord[1] = data.coord[1];
+            temp.coord[2] = data.coord[2];
+            temp.coord[3] = data.coord[3];
+            gameMoves.push_back(temp);
+            getData(data);
+            if (result == SUCCESS) {
+                turn = !turn;
+            }
             curr++;
             head++;
-
-            assess = data.assess;
-            BCopy(field, data.field);
-            type = data.type;
-            vector = data.vector;
-            x = data.coord[2];
-            y = data.coord[3];
-            turn = !turn;
         }
         return result;
     }
@@ -237,6 +272,75 @@ public:
             MoveData temp = gameMoves[curr];
             BCopy(field, temp.field);
             assess = temp.assess;
+        }
+    }
+};
+
+class AnalysicsController {
+    bool turn;
+
+    Engine engine;
+    MOVE_TYPE type;
+    mytype x, y, vector;
+    int curr, head;
+    
+    void getData(MoveData& source) {
+        assess = source.assess;
+        BCopy(field, source.field);
+        type = source.type;
+        vector = source.vector;
+        x = source.x;
+        y = source.y;
+        x1 = source.coord[0];
+        y1 = source.coord[1];
+        x2 = source.coord[2];
+        y2 = source.coord[3];
+        comment = source.comment;
+    }
+
+public:
+
+    TField field;
+    float assess;
+    MOVE_STATUS comment;
+    mytype x1, y1, x2, y2;
+
+    std::vector<MoveData> gameMoves;
+    AnalysicsController() {
+
+        x1 = x2 = y1 = y2 = 0;
+        comment = FORCED;
+        type = MOVE;
+        x = y = vector = 0;
+        turn = true;
+        curr = 0;
+        head = 0;
+        assess = 0;
+        BInit(field);
+
+    }
+    void evaluate(int index, int depth) {
+        engine.evaluate(gameMoves[index], depth);
+    }
+    void setMoves(std::vector<MoveData>& tgameMoves) {
+        gameMoves = tgameMoves;
+    }
+    void getPrev() {
+        if (curr > 0) {
+            curr--;
+            getData(gameMoves[curr]);
+        }
+    }
+    void getNext() {
+        if (curr < gameMoves.size() - 1) {
+            curr++;
+            getData(gameMoves[curr]);
+        }
+    }
+    void getCurr() {
+        if (curr != head) {
+            curr = head;
+            getData(gameMoves[curr]);
         }
     }
 };

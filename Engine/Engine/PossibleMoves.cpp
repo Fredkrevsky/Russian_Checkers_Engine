@@ -141,19 +141,19 @@ void FillDamkaBeatsForOne(TField& field, bool turn, TAM& AllMoves, mytype* len, 
 			FillDamkaBeatsDiag(field, turn, AllMoves, len, x0, y0, x, y, 3);
 		}
 	}
-	if (mode == 2) {
+	else if (mode == 2) {
 		while (CheckCoord(--x, ++y) && (field[x][y] == 0)) {
 			FillDamkaBeatsDiag(field, turn, AllMoves, len, x0, y0, x, y, 1);
 			FillDamkaBeatsDiag(field, turn, AllMoves, len, x0, y0, x, y, 4);
 		}
 	}
-	if (mode == 3) {
+	else if (mode == 3) {
 		while (CheckCoord(++x, --y) && (field[x][y] == 0)) {
 			FillDamkaBeatsDiag(field, turn, AllMoves, len, x0, y0, x, y, 1);
 			FillDamkaBeatsDiag(field, turn, AllMoves, len, x0, y0, x, y, 4);
 		}
 	}
-	if (mode == 4) {
+	else if (mode == 4) {
 		while (CheckCoord(--x, --y) && (field[x][y] == 0)) {
 			FillDamkaBeatsDiag(field, turn, AllMoves, len, x0, y0, x, y, 2);
 			FillDamkaBeatsDiag(field, turn, AllMoves, len, x0, y0, x, y, 3);
@@ -179,8 +179,8 @@ bool FillMoves(TField& field, bool turn, TAM& AllMoves, mytype* len) {
 	if (turn) {
 		temp = 1;
 	}
-	for (mytype i = 0; i < 8; i++) {
-		for (mytype j = 0; j < 8; j++) {
+	for (mytype i = 0; i < 8; ++i) {
+		for (mytype j = 0; j < 8; ++j) {
 			if (field[i][j] == temp){
 				FillBeatsForOne(field, turn, AllMoves, len, i, j);
 			}
@@ -197,8 +197,8 @@ bool FillMoves(TField& field, bool turn, TAM& AllMoves, mytype* len) {
 	if (turn) {
 		dy = 1;
 	}
-	for (mytype x = 0; x < 8; x++) {
-		for (mytype y = 0; y < 8; y++) {
+	for (mytype x = 0; x < 8; ++x) {
+		for (mytype y = 0; y < 8; ++y) {
 			if (field[x][y] == temp) {
 				if (SMCheck(field, x, y, x + 1, y + dy)) {
 					asmAdd(AllMoves, len, x, y, x + 1, y + dy);
