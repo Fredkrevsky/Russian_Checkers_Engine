@@ -6,6 +6,7 @@
 
 bool open = true;
 bool turn = true;
+bool mode = false;
 
 int depth = 12;
 
@@ -27,6 +28,7 @@ class TAnalysicsForm {
     TButton flipB;
     TProgressBar pbar;
     AnalysicsController control;
+    TCommentSection section;
 
 
     void drawprogress() {
@@ -37,6 +39,7 @@ class TAnalysicsForm {
         exitB.draw(win);
         flipB.draw(win);
         pbar.draw(win);
+        section.draw(win);
         win.display();
     }
     void draw() {
@@ -46,6 +49,7 @@ class TAnalysicsForm {
         board.draw(win);
         exitB.draw(win);
         flipB.draw(win);
+        section.draw(win);
         win.display();
     }
 public:
@@ -78,6 +82,8 @@ public:
         flipB.setText("Flip");
         flipB.setPos(50, 920);
 
+        section.setPos(1100, 100);
+
         bar.setValue(0.0);
         drawprogress();
         
@@ -86,6 +92,7 @@ public:
             pbar.setValue((float)i / control.gameMoves.size());
             drawprogress();
         }
+        section.setValues(control.gameMoves);
         draw();
     }
     void poll() {
@@ -164,56 +171,77 @@ public:
         background.setFillColor(Color::White);
 
         TLabel tempL;
+        tempL.setText("Choose mode:");
+        tempL.setPos(320, 30);
+        vLabel.push_back(tempL);
+
+        tempL.setText("vs Player:");
+        tempL.setPos(245, 90);
+        vLabel.push_back(tempL);
+
+        tempL.setText("vs Engine:");
+        tempL.setPos(245, 140);
+        vLabel.push_back(tempL);
+
         tempL.setText("Choose your color:");
-        tempL.setPos(300, 70);
+        tempL.setPos(300, 220);
         vLabel.push_back(tempL);
 
         tempL.setText("White");
-        tempL.setPos(245, 130);
+        tempL.setPos(245, 280);
         vLabel.push_back(tempL);
 
         tempL.setText("Black");
-        tempL.setPos(245, 180);
-        vLabel.push_back(tempL);
-
-        tempL.setText("Choose the difficulty:");
-        tempL.setPos(289, 270);
-        vLabel.push_back(tempL);
-
-        tempL.setText("Easy");
         tempL.setPos(245, 330);
         vLabel.push_back(tempL);
 
+        tempL.setText("Choose the difficulty:");
+        tempL.setPos(289, 410);
+        tempL.setVisible(false);
+        vLabel.push_back(tempL);
+
+        tempL.setText("Easy");
+        tempL.setPos(245, 470);
+        vLabel.push_back(tempL);
+
         tempL.setText("Medium");
-        tempL.setPos(245, 380);
+        tempL.setPos(245, 520);
         vLabel.push_back(tempL);
 
         tempL.setText("Hard");
-        tempL.setPos(245, 430);
+        tempL.setPos(245, 570);
         vLabel.push_back(tempL);
 
         tempL.setText("Impossible");
-        tempL.setPos(245, 480);
+        tempL.setPos(245, 620);
         vLabel.push_back(tempL);
 
         TChoice tempC;
-        tempC.setPos(445, 140);
+        tempC.setPos(445, 97);
         tempC.setStatus(true);
         vChoice.push_back(tempC);
 
-        tempC.setPos(445, 190);
+        tempC.setPos(445, 147);
         tempC.setStatus(false);
         vChoice.push_back(tempC);
 
         turn = true;
 
-        tempC.setPos(445, 340);
+        tempC.setPos(445, 285);
+        tempC.setStatus(true);
         vChoice.push_back(tempC);
-        tempC.setPos(445, 390);
+        tempC.setStatus(false);
+        tempC.setPos(445, 335);
         vChoice.push_back(tempC);
-        tempC.setPos(445, 440);
+
+        tempC.setVisible(false);
+        tempC.setPos(445, 475);
         vChoice.push_back(tempC);
-        tempC.setPos(445, 490);
+        tempC.setPos(445, 525);
+        vChoice.push_back(tempC);
+        tempC.setPos(445, 575);
+        vChoice.push_back(tempC);
+        tempC.setPos(445, 625);
         tempC.setStatus(true);
         vChoice.push_back(tempC);
 
@@ -222,13 +250,13 @@ public:
         startB.setSize(125, 50);
         startB.setColor(Color::Green);
         startB.setText("Start");
-        startB.setPos(270, 600);
+        startB.setPos(240, 720);
         startB.setThickness(2);
 
         exitB.setSize(125, 50);
         exitB.setColor(Color::Green);
         exitB.setText("Exit");
-        exitB.setPos(430, 600);
+        exitB.setPos(400, 720);
         exitB.setThickness(2);
 
         draw();
@@ -247,20 +275,47 @@ public:
                     Vector2f pos = Vector2f(Mouse::getPosition(win));
 
                     int index = -1;
-                    for (int i = 0; i < 6; i++) {
+                    for (int i = 0; i < 8; i++) {
                         if (vChoice[i].isPressed(pos)) {
                             index = i;
                             break;
                         }
                     }
                     if (index != -1) {
-                        if (index < 2) {
-                            vChoice[index].setStatus(true);
-                            vChoice[1 - index].setStatus(false);
-                            turn = 1 - index;
+                        if (index == 0) {
+                            mode = false;
+                            vChoice[0].setStatus(true);
+                            vChoice[1].setStatus(false);
+                            for (int i = 4; i < 8; ++i) {
+                                vChoice[i].setVisible(false);
+                            }
+                            for (int i = 6; i < 11; ++i) {
+                                vLabel[i].setVisible(false);
+                            }
+                        }
+                        else if (index == 1) {
+                            mode = true;
+                            vChoice[1].setStatus(true);
+                            vChoice[0].setStatus(false);
+                            for (int i = 4; i < 8; ++i) {
+                                vChoice[i].setVisible(true);
+                            }
+                            for (int i = 6; i < 11; ++i) {
+                                vLabel[i].setVisible(true);
+                            }
+                        }
+                        else if (index == 2) {
+                            turn = true;
+                            vChoice[2].setStatus(true);
+                            vChoice[3].setStatus(false);
+                        }
+                        else if (index == 3) {
+                            turn = false;
+                            vChoice[2].setStatus(false);
+                            vChoice[3].setStatus(true);
                         }
                         else {
-                            for (int i = 2; i < 6; i++) {
+                            for (int i = 4; i < 8; i++) {
                                 if (i != index) {
                                     vChoice[i].setStatus(false);
                                 }
@@ -268,7 +323,7 @@ public:
                                     vChoice[i].setStatus(true);
                                 }
                             }
-                            depth = masDepth[index - 2];
+                            depth = masDepth[index - 4];
                         }
                     }
                     else if (startB.isPressed(pos)) {
@@ -364,10 +419,11 @@ public:
         turnl.setPos(1100, 550);
         turnl.setText("turn = true");
 
-        exitB.setSize(200, 30);
+        exitB.setSize(230, 60);
+        exitB.setThickness(2);
         exitB.setColor(Color::Green);
         exitB.setText("Exit to main menu");
-        exitB.setPos(1625, 10);
+        exitB.setPos(1100, 700);
 
         board.setField(control.field);
         board.setPos(leftW, menuH);
@@ -390,9 +446,9 @@ public:
             board.flip();
 
             draw();
-#ifndef PVP
-            control.EngineMove(depth);
-#endif
+            if (mode){
+                control.EngineMove(depth);
+            }
             board.setField(control.field);
         }
         draw();
@@ -471,20 +527,20 @@ public:
                     MOVE_RESULT result = control.PlayerMove(coord[0], coord[1], coord[2], coord[3]);
                     if (result != INVALID_COORD) {
                         board.setField(control.field);
-#ifdef PVP
-                        if (result == SUCCESS) {
-                            board.flip();
+                        if (!mode){
+                            if (result == SUCCESS) {
+                                board.flip();
+                            }
                         }
-
-#else
-                        draw();
-                        if (result == SUCCESS) {
-                            do {
-                                result = control.EngineMove(depth);
-                                board.setField(control.field);
-                            } while (result == ONE_MORE);
+                        else {
+                            draw();
+                            if (result == SUCCESS) {
+                                do {
+                                    result = control.EngineMove(depth);
+                                    board.setField(control.field);
+                                } while (result == ONE_MORE);
+                            }
                         }
-#endif
                     }
                 }
             }
@@ -509,7 +565,7 @@ int main()
 
     while (open) {
         if (open) {
-            RenderWindow start(VideoMode(850, 850), "VOBLA", Style::Close);
+            RenderWindow start(VideoMode(760, 850), "VOBLA", Style::Close);
             start.setIcon(512, 512, icon.getPixelsPtr());
             start.setFramerateLimit(60);
             start.setVerticalSyncEnabled(true);

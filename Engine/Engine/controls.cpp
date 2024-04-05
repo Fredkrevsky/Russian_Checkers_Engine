@@ -7,11 +7,10 @@ void TBoard::redReset() {
         }
     }
 }
-TBoard::TBoard() {
-    x1 = y1 = x2 = y2 = 0;
+TBoard::TBoard() : TObject(){
+
+    x1 = x2 = y1 = y2 = 0;
     comment = FORCED;
-    x = 0;
-    y = 0;
     flipped = false;
 
     best.loadFromFile("Image/best.png");
@@ -20,16 +19,15 @@ TBoard::TBoard() {
     good.loadFromFile("Image/good.png");
     inac.loadFromFile("Image/inaccurasy.png");
 }
+void TBoard::setPos(int x0, int y0) {
+    TObject::setPos(x0, y0);
+}
 void TBoard::setField(TField& toSet) {
     BCopy(field, toSet);
     if (flipped) {
         flip();
         flipped = true;
     }
-}
-void TBoard::setPos(int x0, int y0) {
-    x = x0;
-    y = y0;
 }
 void TBoard::getCoord(Vector2f start, Vector2f end, mytype* coord) {
     redReset();
@@ -159,6 +157,28 @@ void TBoard::setComment(MOVE_STATUS tcomment, mytype tx1, mytype ty1, mytype tx2
     comment = tcomment;
 }
 
+TLabel::TLabel() {
+    visible = true;
+    text.setString("");
+    text.setFont(font);
+    text.setCharacterSize(fontSize);
+    text.setFillColor(Color::Black);
+    text.setPosition(0, 0);
+}
+void TLabel::setText(std::string txt) {
+    text.setString(txt);
+}
+void TLabel::setPos(int x, int y) {
+    text.setPosition(x, y);
+}
+void TLabel::draw(RenderWindow& win) {
+    if (visible) {
+        win.draw(text);
+    }
+}
+void TLabel::setVisible(bool toSet) {
+    visible = toSet;
+}
 
 TObject::TObject() {
     x = 0;
@@ -169,6 +189,7 @@ TObject::TObject() {
     background.setPosition(0, 0);
     background.setSize(Vector2f(0, 0));
     background.setOutlineColor(Color(30, 30, 30));
+    visible = true;
 }
 void TObject::setPos(int tx, int ty) {
     x = tx;
@@ -187,13 +208,18 @@ void TObject::setThickness(int thickness) {
     background.setOutlineThickness(thickness);
 }
 void TObject::draw(RenderWindow& win) {
-    win.draw(background);
+    if (visible) {
+        win.draw(background);
+    }
+}
+void TObject::setVisible(bool toSet) {
+    visible = toSet;
 }
 
 
 bool TClickable::isPressed(Vector2f& pos) {
     pressPos = pos;
-    return ((pos.x - x) >= 0) && (pos.x - x <= width) && ((pos.y - y) >= 0) && (pos.y - y <= height);
+    return visible && ((pos.x - x) >= 0) && (pos.x - x <= width) && ((pos.y - y) >= 0) && (pos.y - y <= height);
 }
 TClickable::TClickable() : TObject() {}
 
@@ -228,8 +254,10 @@ void TButton::onRelease() {
     background.setFillColor(Color::Green);
 }
 void TButton::draw(RenderWindow& win) {
-    TObject::draw(win);
-    win.draw(text);
+    if (visible) {
+        TObject::draw(win);
+        win.draw(text);
+    }
 }
 
 
@@ -254,9 +282,11 @@ void TChoice::onPress() {
 }
 void TChoice::onRelease() { }
 void TChoice::draw(RenderWindow& win) {
-    TObject::draw(win);
-    if (isSelected) {
-        win.draw(in);
+    if (visible) {
+        TObject::draw(win);
+        if (isSelected) {
+            win.draw(in);
+        }
     }
 }
 void TChoice::setStatus(bool status) {
@@ -293,10 +323,12 @@ void TBar::setSecondColor(Color color) {
     second.setFillColor(color);
 }
 void TBar::draw(RenderWindow& win) {
-    TObject::draw(win);
-    win.draw(first);
-    win.draw(second);
-    win.draw(text);
+    if (visible) {
+        TObject::draw(win);
+        win.draw(first);
+        win.draw(second);
+        win.draw(text);
+    }
 }
 
 
@@ -432,3 +464,165 @@ void TAssessBar::flip() {
     second.setFillColor(temp);
 }
 
+
+void GameController::getData(MoveData& source) {
+    assess = source.assess;
+    BCopy(field, source.field);
+    type = source.type;
+    vector = source.vector;
+    x = source.x;
+    y = source.y;
+}
+void GameController::setData(MoveData& dest) {
+    dest.assess = assess;
+    dest.x = x;
+    dest.y = y;
+    BCopy(dest.field, field);
+    BCopy(dest.oldfield, field);
+    dest.turn = turn;
+    dest.type = type;
+    dest.vector = vector;
+}
+GameController::GameController() {
+    type = MOVE;
+    x = y = vector = 0;
+    turn = true;
+    curr = 0;
+    head = 0;
+    assess = 0;
+    BInit(field);
+
+    MoveData temp;
+    setData(temp);
+    temp.coord[0] = 0;
+    temp.coord[1] = 0;
+    temp.coord[2] = 0;
+    temp.coord[3] = 0;
+
+    gameMoves.push_back(temp);
+}
+MOVE_RESULT GameController::PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2) {
+    if (curr == head) {
+
+        MoveData data;
+        setData(data);
+        data.coord[0] = x1;
+        data.coord[1] = y1;
+        data.coord[2] = x2;
+        data.coord[3] = y2;
+
+        MoveData temp = data;
+        MOVE_RESULT result = engine.PlayerMove(data);
+        if (result != INVALID_COORD) {
+            BCopy(temp.field, data.field);
+            gameMoves.push_back(temp);
+            getData(data);
+            if (result == SUCCESS) {
+                turn = !turn;
+            }
+            head++;
+            curr++;
+        }
+        return result;
+    }
+}
+MOVE_RESULT GameController::EngineMove(mytype depth) {
+    getCurr();
+
+    MoveData data;
+    setData(data);
+
+    MoveData temp = data;
+    MOVE_RESULT result = engine.EngineMove(data, depth);
+    if (result == ONE_MORE || result == SUCCESS) {
+        BCopy(temp.field, data.field);
+        temp.coord[0] = data.coord[0];
+        temp.coord[1] = data.coord[1];
+        temp.coord[2] = data.coord[2];
+        temp.coord[3] = data.coord[3];
+        gameMoves.push_back(temp);
+        getData(data);
+        if (result == SUCCESS) {
+            turn = !turn;
+        }
+        curr++;
+        head++;
+    }
+    return result;
+}
+void GameController::getPrev() {
+    if (curr > 0) {
+        curr--;
+        MoveData temp = gameMoves[curr];
+        BCopy(field, temp.field);
+        assess = temp.assess;
+    }
+}
+void GameController::getNext() {
+    if (curr < head) {
+        curr++;
+        MoveData temp = gameMoves[curr];
+        BCopy(field, temp.field);
+        assess = temp.assess;
+    }
+}
+void GameController::getCurr() {
+    if (curr != head) {
+        curr = head;
+        MoveData temp = gameMoves[curr];
+        BCopy(field, temp.field);
+        assess = temp.assess;
+    }
+}
+
+
+void AnalysicsController::getData(MoveData& source) {
+    assess = source.assess;
+    BCopy(field, source.field);
+    type = source.type;
+    vector = source.vector;
+    x = source.x;
+    y = source.y;
+    x1 = source.coord[0];
+    y1 = source.coord[1];
+    x2 = source.coord[2];
+    y2 = source.coord[3];
+    comment = source.comment;
+}
+AnalysicsController::AnalysicsController() {
+
+    x1 = x2 = y1 = y2 = 0;
+    comment = FORCED;
+    type = MOVE;
+    x = y = vector = 0;
+    turn = true;
+    curr = 0;
+    head = 0;
+    assess = 0;
+    BInit(field);
+
+}
+void AnalysicsController::evaluate(int index, int depth) {
+    engine.evaluate(gameMoves[index], depth);
+}
+void AnalysicsController::setMoves(std::vector<MoveData>& tgameMoves) {
+    gameMoves = tgameMoves;
+}
+void AnalysicsController::getPrev() {
+    if (curr > 0) {
+        curr--;
+        getData(gameMoves[curr]);
+    }
+}
+void AnalysicsController::getNext() {
+    if (curr < gameMoves.size() - 1) {
+        curr++;
+        getData(gameMoves[curr]);
+    }
+}
+void AnalysicsController::getCurr() {
+    if (curr != head) {
+        curr = head;
+        getData(gameMoves[curr]);
+    }
+}

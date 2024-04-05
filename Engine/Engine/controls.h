@@ -12,23 +12,13 @@ const int tileSize = 100;
 
 class TLabel {
     Text text;
+    bool visible;
 public: 
-    TLabel() {
-        text.setString("");
-        text.setFont(font);
-        text.setCharacterSize(fontSize);
-        text.setFillColor(Color::Black);
-        text.setPosition(0, 0);
-    }
-    void setText(std::string txt) {
-        text.setString(txt);
-    }
-    void setPos(int x, int y) {
-        text.setPosition(x, y);
-    }
-    void draw(RenderWindow& win) {
-        win.draw(text);
-    }
+    TLabel();
+    void setText(std::string txt);
+    void setPos(int x, int y);
+    void draw(RenderWindow& win);
+    void setVisible(bool toSet);
 };
 
 class TObject
@@ -37,7 +27,9 @@ protected:
     RectangleShape background;
     int x, y, width, height;
     TObject();
+    bool visible;
 public:
+    void setVisible(bool toSet);
     virtual ~TObject() {}
     virtual void setPos(int tx, int ty);
     virtual void setSize(int twidth, int theight);
@@ -126,9 +118,202 @@ public:
     void flip();
 };
 
-class TBoard {
-    int x;
-    int y;
+class TCommentSection : TObject{
+    std::vector<Text> vText;
+    std::vector<char> values;
+public:
+    TCommentSection() : TObject() {
+        setThickness(2);
+        for (int i = 0; i < 10; ++i) {
+            values.push_back(0);
+        }
+
+        Text text;
+        text.setFont(font);
+        text.setCharacterSize(fontSize);
+        text.setFillColor(Color::Black);
+        text.setString("Results:");
+        text.setPosition(x + 50, y);
+        vText.push_back(text);
+
+        text.setString("0");
+        text.setPosition(x, y + 50);
+        vText.push_back(text);
+        text.setString("Best");
+        text.setPosition(x + 30, y + 50);
+        vText.push_back(text);
+        text.setString("0");
+        text.setPosition(x + 200, y + 50);
+        vText.push_back(text);
+
+        text.setString("0");
+        text.setPosition(x, y + 100);
+        vText.push_back(text);
+        text.setString("Good");
+        text.setPosition(x + 30, y + 100);
+        vText.push_back(text);
+        text.setString("0");
+        text.setPosition(x + 200, y + 100);
+        vText.push_back(text);
+
+        text.setString("0");
+        text.setPosition(x, y + 150);
+        vText.push_back(text);
+        text.setString("Forced");
+        text.setPosition(x + 30, y + 150);
+        vText.push_back(text);
+        text.setString("0");
+        text.setPosition(x + 200, y + 150);
+        vText.push_back(text);
+
+        text.setString("0");
+        text.setPosition(x, y + 200);
+        vText.push_back(text);
+        text.setString("Inaccuracy");
+        text.setPosition(x + 30, y + 200);
+        vText.push_back(text);
+        text.setString("0");
+        text.setPosition(x + 200, y + 200);
+        vText.push_back(text);
+
+        text.setString("0");
+        text.setPosition(x, y + 250);
+        vText.push_back(text);
+        text.setString("Blunder");
+        text.setPosition(x + 30, y + 250);
+        vText.push_back(text);
+        text.setString("0");
+        text.setPosition(x + 200, y + 250);
+        vText.push_back(text);
+
+        text.setPosition(x, y + 320);
+        text.setString("White accuracy:");
+        vText.push_back(text);
+        text.setPosition(x + 200, y + 320);
+        text.setString("0.0%");
+        vText.push_back(text);
+
+        text.setPosition(x, y + 370);
+        text.setString("Black accuracy:");
+        vText.push_back(text);
+        text.setPosition(x + 200, y + 370);
+        text.setString("0.0%");
+        vText.push_back(text);
+    }
+    void setPos(int x0, int y0) override {
+        TObject::setPos(x0, y0);
+
+        vText[0].setPosition(x0 + 50, y0);
+        vText[1].setPosition(x0, y0 + 50);
+        vText[2].setPosition(x0 + 30, y0 + 50);
+        vText[3].setPosition(x0 + 200, y0 + 50);
+
+        vText[4].setPosition(x0, y0 + 100);
+        vText[5].setPosition(x0 + 30, y0 + 100);
+        vText[6].setPosition(x0 + 200, y0 + 100);
+
+        vText[7].setPosition(x0, y0 + 150);
+        vText[8].setPosition(x0 + 30, y0 + 150);
+        vText[9].setPosition(x0 + 200, y0 + 150);
+
+        vText[10].setPosition(x0, y0 + 200);
+        vText[11].setPosition(x0 + 30, y0 + 200);
+        vText[12].setPosition(x0 + 200, y0 + 200);
+
+        vText[13].setPosition(x0, y0 + 250);
+        vText[14].setPosition(x0 + 30, y0 + 250);
+        vText[15].setPosition(x0 + 200, y0 + 250);
+
+        vText[16].setPosition(x0, y0 + 320);
+        vText[17].setPosition(x0 + 200, y0 + 320);
+        vText[18].setPosition(x0, y0 + 370);
+        vText[19].setPosition(x0 + 200, y0 + 370);
+        
+    }
+    void setValues(std::vector<MoveData>& vdata) {
+        int white, black, sumwhite, sumblack;
+        sumblack = sumwhite = white = black = 0;
+        for (int i = 1; i < vdata.size(); ++i) {
+            switch (vdata[i].comment) {
+            case BEST: 
+                if (vdata[i].turn) {
+                    values[0]++;
+                    sumwhite += 10;
+                    white += 10;
+                }
+                else {
+                    values[1]++;
+                    sumblack += 10;
+                    black += 10;
+                }
+                break;
+            case GOOD: 
+                if (vdata[i].turn) {
+                    values[2]++;
+                    sumwhite += 10;
+                    white += 10;
+                }
+                else {
+                    values[3]++;
+                    sumblack += 10;
+                    black += 10;
+                }
+                break;
+            case FORCED: 
+                if (vdata[i].turn) {
+                    values[4]++;
+                    sumwhite += 10;
+                    white += 10;
+                }
+                else {
+                    values[5]++;
+                    sumblack += 10;
+                    black += 10;
+                }
+                break;
+            case INACCURACY: if (vdata[i].turn) {
+                values[6]++;
+                sumwhite += 10;
+                white += 3;
+            }
+            else {
+                values[7]++;
+                sumblack += 10;
+                black += 3;
+            }
+            break;
+            case BLUNDER:
+                if (vdata[i].turn) {
+                    values[8]++;
+                    sumwhite += 10;
+                }
+                else {
+                    values[9]++;
+                    sumblack += 10;
+                }
+                break;
+            }
+        }
+        for (int i = 0; i < 5; ++i) {
+            vText[3 * i + 1].setString(std::to_string(values[2 * i]));
+            vText[3 * i + 3].setString(std::to_string(values[2 * i + 1]));
+        }
+        if (sumwhite) {
+            vText[17].setString(std::to_string(white * 100 / sumwhite) + "." + std::to_string((white * 1000 / sumwhite) % 10) + "%");
+        }
+        if (sumblack) {
+            vText[19].setString(std::to_string(black * 100 / sumblack) + "." + std::to_string((black * 1000 / sumblack) % 10) + "%");
+        }
+    }
+    void draw(RenderWindow& win) {
+        TObject::draw(win);
+        for (auto& elem : vText) {
+            win.draw(elem);
+        }
+    }
+};
+
+class TBoard : TObject {
     bool flipped;
     TField field = {};
     bool red[8][8] = {};
@@ -140,8 +325,8 @@ class TBoard {
 
 public:
     TBoard();
+    void setPos(int x0, int y0) override;
     void setField(TField& toSet);
-    void setPos(int x0, int y0);
     void getCoord(Vector2f start, Vector2f end, mytype* coord);
     void redSet(Vector2f& start);
     void flip();
@@ -152,128 +337,24 @@ public:
 class GameController {
     Engine engine;
     bool turn;
-
-
     MOVE_TYPE type;
     mytype x, y, vector;
 
-    void getData(MoveData& source) {
-        assess = source.assess;
-        BCopy(field, source.field);
-        type = source.type;
-        vector = source.vector;
-        x = source.x;
-        y = source.y;
-    }
-    void setData(MoveData& dest) {
-        dest.assess = assess;
-        dest.x = x;
-        dest.y = y;
-        BCopy(dest.field, field);
-        BCopy(dest.oldfield, field);
-        dest.turn = turn;
-        dest.type = type;
-        dest.vector = vector;
-    }
+    void getData(MoveData& source);
+    void setData(MoveData& dest);
 
 public:
-
     TField field;
     float assess;
     int curr, head;
 
     std::vector<MoveData> gameMoves;
-    GameController() {
-        type = MOVE;
-        x = y = vector = 0;
-        turn = true;
-        curr = 0;
-        head = 0;
-        assess = 0;
-        BInit(field);
-
-        MoveData temp;
-        setData(temp);
-        temp.coord[0] = 0;
-        temp.coord[1] = 0;
-        temp.coord[2] = 0;
-        temp.coord[3] = 0;
-
-        gameMoves.push_back(temp);
-    }
-    MOVE_RESULT PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2) {
-        if (curr == head) {
-
-            MoveData data;
-            setData(data);
-            data.coord[0] = x1;
-            data.coord[1] = y1;
-            data.coord[2] = x2;
-            data.coord[3] = y2;
-
-            MoveData temp = data;
-            MOVE_RESULT result = engine.PlayerMove(data);
-            if (result != INVALID_COORD) {
-                BCopy(temp.field, data.field);
-                gameMoves.push_back(temp);
-                getData(data);
-                if (result == SUCCESS) {
-                    turn = !turn;
-                }
-                head++;
-                curr++;
-            }
-            return result;
-        }
-    }
-    MOVE_RESULT EngineMove(mytype depth) {
-        getCurr();
-
-        MoveData data;
-        setData(data);
-
-        MoveData temp = data;
-        MOVE_RESULT result = engine.EngineMove(data, depth);
-        if (result == ONE_MORE || result == SUCCESS) {
-            BCopy(temp.field, data.field);
-            temp.coord[0] = data.coord[0];
-            temp.coord[1] = data.coord[1];
-            temp.coord[2] = data.coord[2];
-            temp.coord[3] = data.coord[3];
-            gameMoves.push_back(temp);
-            getData(data);
-            if (result == SUCCESS) {
-                turn = !turn;
-            }
-            curr++;
-            head++;
-        }
-        return result;
-    }
-    void getPrev() {
-        if (curr > 0) {
-            curr--;
-            MoveData temp = gameMoves[curr];
-            BCopy(field, temp.field);
-            assess = temp.assess;
-        }
-    }
-    void getNext() {
-        if (curr < head) {
-            curr++;
-            MoveData temp = gameMoves[curr];
-            BCopy(field, temp.field);
-            assess = temp.assess;
-        }
-    }
-    void getCurr() {
-        if (curr != head) {
-            curr = head;
-            MoveData temp = gameMoves[curr];
-            BCopy(field, temp.field);
-            assess = temp.assess;
-        }
-    }
+    GameController();
+    MOVE_RESULT PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2);
+    MOVE_RESULT EngineMove(mytype depth);
+    void getPrev();
+    void getNext();
+    void getCurr();
 };
 
 class AnalysicsController {
@@ -284,19 +365,7 @@ class AnalysicsController {
     mytype x, y, vector;
     int curr, head;
     
-    void getData(MoveData& source) {
-        assess = source.assess;
-        BCopy(field, source.field);
-        type = source.type;
-        vector = source.vector;
-        x = source.x;
-        y = source.y;
-        x1 = source.coord[0];
-        y1 = source.coord[1];
-        x2 = source.coord[2];
-        y2 = source.coord[3];
-        comment = source.comment;
-    }
+    void getData(MoveData& source);
 
 public:
 
@@ -306,41 +375,10 @@ public:
     mytype x1, y1, x2, y2;
 
     std::vector<MoveData> gameMoves;
-    AnalysicsController() {
-
-        x1 = x2 = y1 = y2 = 0;
-        comment = FORCED;
-        type = MOVE;
-        x = y = vector = 0;
-        turn = true;
-        curr = 0;
-        head = 0;
-        assess = 0;
-        BInit(field);
-
-    }
-    void evaluate(int index, int depth) {
-        engine.evaluate(gameMoves[index], depth);
-    }
-    void setMoves(std::vector<MoveData>& tgameMoves) {
-        gameMoves = tgameMoves;
-    }
-    void getPrev() {
-        if (curr > 0) {
-            curr--;
-            getData(gameMoves[curr]);
-        }
-    }
-    void getNext() {
-        if (curr < gameMoves.size() - 1) {
-            curr++;
-            getData(gameMoves[curr]);
-        }
-    }
-    void getCurr() {
-        if (curr != head) {
-            curr = head;
-            getData(gameMoves[curr]);
-        }
-    }
+    AnalysicsController();
+    void evaluate(int index, int depth);
+    void setMoves(std::vector<MoveData>& tgameMoves);
+    void getPrev();
+    void getNext();
+    void getCurr();
 };
