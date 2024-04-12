@@ -1,4 +1,4 @@
-#pragma once
+#pragma once+
 #include <SFML/Graphics.hpp>
 #include "Engine.h"
 
@@ -335,8 +335,8 @@ public:
 };
 
 class GameController {
+protected:
     Engine engine;
-    bool turn;
     MOVE_TYPE type;
     mytype x, y, vector;
 
@@ -347,10 +347,11 @@ public:
     TField field;
     float assess;
     int curr, head;
+    bool turn;
 
     std::vector<MoveData> gameMoves;
     GameController();
-    MOVE_RESULT PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2);
+    virtual MOVE_RESULT PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2);
     MOVE_RESULT EngineMove(mytype depth);
     void getPrev();
     void getNext();
@@ -381,4 +382,42 @@ public:
     void getPrev();
     void getNext();
     void getCurr();
+};
+
+class TInput : public TClickable {
+    bool isSelected;
+    Text text;
+    int limit;
+    bool checkchar(char toCheck);
+public:
+    bool letters = false;
+    bool dot = false;
+    bool numbers = false;
+    TInput();
+    void onPress() override;
+    void onKeyPress(char pressed);
+    void onRelease() override;
+    void draw(RenderWindow& win) override;
+    void setPos(int x0, int y0) override;
+    void setSize(int w, int h) override;
+    void setLimit(int lim);
+    std::string getText();
+};
+
+class TWait {
+
+    const float s3 = 1.73205;
+
+    CircleShape mas[6];
+    int current = 0;
+    int radius = 100;
+    int x = 0, y = 0;
+
+    void setPos();
+public:
+    TWait();
+    void setNext();
+    void setPos(int tx, int ty);
+    void setRadius(int tradius);
+    void draw(RenderWindow& win);
 };

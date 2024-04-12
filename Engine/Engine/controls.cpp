@@ -216,13 +216,11 @@ void TObject::setVisible(bool toSet) {
     visible = toSet;
 }
 
-
 bool TClickable::isPressed(Vector2f& pos) {
     pressPos = pos;
     return visible && ((pos.x - x) >= 0) && (pos.x - x <= width) && ((pos.y - y) >= 0) && (pos.y - y <= height);
 }
 TClickable::TClickable() : TObject() {}
-
 
 void TButton::normText() {
     text.setPosition(x + (width - len * fontSize / 2) / 2 + 4, y + (height - fontSize) / 2 - 4);
@@ -260,7 +258,6 @@ void TButton::draw(RenderWindow& win) {
     }
 }
 
-
 TChoice::TChoice() : TClickable() {
     background.setFillColor(Color::White);
     isSelected = false;
@@ -296,7 +293,6 @@ bool TChoice::getStatus() {
     return isSelected;
 }
 
-
 TBar::TBar() : TObject() {
     value = 0.5;
     posX = width * value;
@@ -330,7 +326,6 @@ void TBar::draw(RenderWindow& win) {
         win.draw(text);
     }
 }
-
 
 inline void TProgressBar::setWidth() {
     posX = width * value;
@@ -372,7 +367,6 @@ void TProgressBar::setValue(float toSet) {
     second.setPosition(x + posX, y);
     second.setSize(Vector2f(width - posX, height));
 }
-
 
 inline void TAssessBar::setHeight() {
     if (abs(value) < 0.2) {
@@ -463,7 +457,6 @@ void TAssessBar::flip() {
     first.setFillColor(second.getFillColor());
     second.setFillColor(temp);
 }
-
 
 void GameController::getData(MoveData& source) {
     assess = source.assess;
@@ -575,7 +568,6 @@ void GameController::getCurr() {
     }
 }
 
-
 void AnalysicsController::getData(MoveData& source) {
     assess = source.assess;
     BCopy(field, source.field);
@@ -624,5 +616,109 @@ void AnalysicsController::getCurr() {
     if (curr != head) {
         curr = head;
         getData(gameMoves[curr]);
+    }
+}
+
+TInput::TInput() : TClickable() {
+    text.setPosition(3, 3);
+    text.setCharacterSize(fontSize);
+    text.setFont(font);
+    text.setFillColor(Color::Black);
+    setColor(Color::White);
+    text.setString("");
+
+    limit = 15;
+    isSelected = false;
+}
+bool TInput::checkchar(char toCheck) {
+    return (toCheck >= '0') && (toCheck <= '9') || (toCheck >= 'a') && (toCheck <= 'z') || (toCheck >= 'A') && (toCheck <= 'Z') || (toCheck == '_');
+}
+void TInput::onPress() {
+    isSelected = visible;
+}
+void TInput::onKeyPress(char inputChar) {
+
+    if (isSelected) {
+        std::string temp = text.getString();
+
+        if (letters && inputChar >= 0 && inputChar <= 25) {
+            if (temp.size() < limit) {
+                temp.push_back('A' + inputChar);
+            }
+        }
+        else if (numbers && inputChar >= 26 && inputChar <= 35) {
+            if (temp.size() < limit) {
+                temp.push_back('0' + inputChar - 26);
+            }
+        }
+        else if (dot && inputChar == 50) {
+            if (temp.size() < limit) {
+                temp.push_back('.');
+            }
+        }
+        else if (inputChar == 59 && !temp.empty()) {
+            temp.pop_back();
+        }
+        text.setString(temp);
+
+    }
+}
+void TInput::onRelease() {
+    isSelected = false;
+}
+void TInput::draw(RenderWindow& win) {
+    if (visible) {
+        TClickable::draw(win);
+        win.draw(text);
+    }
+}
+void TInput::setPos(int x0, int y0) {
+    TClickable::setPos(x0, y0);
+    text.setPosition(x0 + 3, y0 + (height - fontSize) / 2 - 4);
+}
+void TInput::setSize(int w, int h) {
+    TClickable::setSize(w, h);
+}
+void TInput::setLimit(int lim) {
+    limit = lim;
+}
+std::string TInput::getText() {
+    return text.getString();
+}
+
+TWait::TWait() {
+    for (int i = 0; i < 6; ++i) {
+        mas[i].setFillColor(Color::White);
+        mas[i].setRadius(30);
+        mas[i].setOutlineColor(Color::Black);
+        mas[i].setOutlineThickness(3);
+    }
+    setPos();
+}
+void TWait::setNext() {
+    mas[current].setFillColor(Color::White);
+    current = (current + 1) % 6;
+    mas[current].setFillColor(Color::Green);
+}
+void TWait::setPos(int tx, int ty) {
+    x = tx;
+    y = ty;
+    setPos();
+}
+void TWait::setRadius(int tradius) {
+    radius = tradius;
+    setPos();
+}
+void TWait::setPos() {
+    mas[0].setPosition(x + radius * s3 / 2, y);
+    mas[1].setPosition(x + radius * s3, y + radius / 2);
+    mas[2].setPosition(x + radius * s3, y + 3 * radius / 2);
+    mas[3].setPosition(x + radius * s3 / 2, y + 2 * radius);
+    mas[4].setPosition(x, y + 3 * radius / 2);
+    mas[5].setPosition(x, y + radius / 2);
+}
+void TWait::draw(RenderWindow& win) {
+    for (int i = 0; i < 6; ++i) {
+        win.draw(mas[i]);
     }
 }

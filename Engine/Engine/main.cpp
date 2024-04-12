@@ -1,21 +1,26 @@
 #include "Engine.h"
 #include <SFML/Graphics.hpp>
+#include <SFML/Network.hpp>
+#include <SFML/System.hpp>
 #include "controls.h"
-
-//#define PVP
 
 bool open = true;
 bool turn = true;
 bool mode = false;
+bool pvp = true;
 
 int depth = 12;
 
 Font font;
+Image icon;
 
 const int menuH = 100;
 const int winH = 1400;
 const int winW = 1000;
 const int leftW = 200;
+
+TcpSocket socket;
+TcpListener listener;
 
 class TAnalysicsForm {
 
@@ -145,10 +150,11 @@ public:
 };
 
 class TStartForm {
-    RenderWindow& win;
+    RenderWindow win;
     RectangleShape background;
     std::vector<TLabel> vLabel;
     std::vector<TChoice> vChoice;
+    std::vector<TInput> vInput;
     TButton startB, exitB;
     int masDepth[4] = { 6, 8, 10, 12 };
 
@@ -161,12 +167,20 @@ class TStartForm {
         for (TChoice& elem : vChoice) {
             elem.draw(win);
         }
+        for (TInput& elem : vInput) {
+            elem.draw(win);
+        }
         startB.draw(win);
         exitB.draw(win);
         win.display();
     }
 public:
-    TStartForm(RenderWindow& renwin) : win(renwin) {
+    TStartForm(): win(VideoMode(760, 850), "Russian checkers", Style::Close) {
+
+        win.setIcon(512, 512, icon.getPixelsPtr());
+        win.setFramerateLimit(60);
+        win.setVerticalSyncEnabled(true);
+
         background.setSize(Vector2f(win.getSize()));
         background.setFillColor(Color::White);
 
@@ -216,6 +230,15 @@ public:
         tempL.setPos(245, 620);
         vLabel.push_back(tempL);
 
+        tempL.setVisible(true);
+        tempL.setPos(300, 425);
+        tempL.setText("Enter server IP");
+        vLabel.push_back(tempL);
+        tempL.setPos(300, 525);
+        tempL.setText("Enter server port");
+        vLabel.push_back(tempL);
+
+
         TChoice tempC;
         tempC.setPos(445, 97);
         tempC.setStatus(true);
@@ -235,17 +258,31 @@ public:
         vChoice.push_back(tempC);
 
         tempC.setVisible(false);
-        tempC.setPos(445, 475);
-        vChoice.push_back(tempC);
-        tempC.setPos(445, 525);
-        vChoice.push_back(tempC);
-        tempC.setPos(445, 575);
-        vChoice.push_back(tempC);
-        tempC.setPos(445, 625);
-        tempC.setStatus(true);
-        vChoice.push_back(tempC);
+        for (int i = 0; i < 4; ++i) {
+            if (i == 3) {
+                tempC.setStatus(true);
+            }
+            tempC.setPos(445, 475 + 50 * i);
+            vChoice.push_back(tempC);
+        }
 
         depth = masDepth[3];
+
+        TInput tempI;
+        tempI.setThickness(2);
+        tempI.setVisible(true);
+        tempI.setSize(300, 35);
+        tempI.setPos(225, 475);
+        tempI.setLimit(20);
+        tempI.numbers = true;
+        tempI.dot = true;
+        tempI.setLimit(15);
+        vInput.push_back(tempI);
+        tempI.setPos(225, 575);
+        tempI.dot = false;
+        tempI.setLimit(5);
+        vInput.push_back(tempI);
+
 
         startB.setSize(125, 50);
         startB.setColor(Color::Green);
@@ -292,6 +329,11 @@ public:
                             for (int i = 6; i < 11; ++i) {
                                 vLabel[i].setVisible(false);
                             }
+                            vInput[0].setVisible(true);
+                            vInput[1].setVisible(true);
+                            vLabel[11].setVisible(true);
+                            vLabel[12].setVisible(true);
+                            pvp = true;
                         }
                         else if (index == 1) {
                             mode = true;
@@ -303,6 +345,11 @@ public:
                             for (int i = 6; i < 11; ++i) {
                                 vLabel[i].setVisible(true);
                             }
+                            vInput[0].setVisible(false);
+                            vInput[1].setVisible(false);
+                            vLabel[11].setVisible(false);
+                            vLabel[12].setVisible(false);
+                            pvp = false;
                         }
                         else if (index == 2) {
                             turn = true;
@@ -326,14 +373,29 @@ public:
                             depth = masDepth[index - 4];
                         }
                     }
+                    else if (vInput[0].isPressed(pos)) {
+                        vInput[0].onPress();
+                        vInput[1].onRelease();
+                    }
+                    else if (vInput[1].isPressed(pos)) {
+                        vInput[1].onPress();
+                        vInput[0].onRelease();
+                    }
                     else if (startB.isPressed(pos)) {
-                        win.close();
-                        open = true;
+                        if (!pvp || pvp && vInput[1].getText().size() && socket.connect(vInput[0].getText(), stoi(vInput[1].getText())) == Socket::Done) {
+                            win.close();
+                            open = true;
+                        }
                     }
                     else if (exitB.isPressed(pos)) {
                         win.close();
                         open = false;
                     }
+                }
+                else if (event.type == sf::Event::KeyPressed) {
+                    char key = event.key.code;
+                    vInput[0].onKeyPress(key);
+                    vInput[1].onKeyPress(key);
                 }
             }
             draw();
@@ -341,13 +403,14 @@ public:
     }
 };
 
-class TMainForm {
+class TEngineForm {
     bool LP = false;
     bool LR = false;
 
+    RenderWindow win;
+
     RectangleShape background;
 
-    RenderWindow& win;
     TButton exitB, flipB, analysicsB;
     TBoard board;
 
@@ -399,8 +462,12 @@ class TMainForm {
         win.display();
     }
 public:
-    TMainForm(RenderWindow& renwin, bool turn): win(renwin) {
-        
+    TEngineForm() : win(VideoMode(winH, winW), "Russian checkers", Style::Close) {
+       
+        win.setIcon(512, 512, icon.getPixelsPtr());
+        win.setFramerateLimit(60);
+        win.setVerticalSyncEnabled(true);
+
         background.setSize(Vector2f(win.getSize()));
         background.setFillColor(Color::White);
 
@@ -549,12 +616,269 @@ public:
     }
 };
 
+class TPvpForm {
+    bool turn = true;
+    bool LP = false;
+    bool LR = false;
+    bool opponentMoveReceived = false;
+    bool connected = false;
 
+    RectangleShape background;
+
+    RenderWindow win;
+
+    TButton exitB, flipB, analysicsB;
+    TBoard board;
+
+    TLabel x, y, vector, assess, coord, type, turnl;
+    TWait wait;
+
+    GameController control;
+
+    void sendMove(mytype x1, mytype y1, mytype x2, mytype y2) {
+        Packet packet;
+        packet << x1 << y1 << x2 << y2;
+        socket.send(packet);
+    }
+
+    void receiveOpponentMove() {
+        Packet packet;
+        mytype x1, y1, x2, y2;
+
+        if (socket.receive(packet) == Socket::Done) {
+            packet >> x1 >> y1 >> x2 >> y2;
+            control.PlayerMove(x1, y1, x2, y2);
+            opponentMoveReceived = true;
+        }
+    }
+
+    void receiveTurn() {
+        Packet packet;
+        uint8_t temp;
+        uint32_t tturn = 0;
+
+        if (!connected && socket.receive(packet) == Socket::Done) {
+            packet >> tturn;
+            turn = tturn;
+            connected = true;
+            if (!turn) {
+                board.flip();
+            }
+            draw();
+        }
+    }
+
+    void setText(int index) {
+        if (control.gameMoves.size() > index) {
+            MoveData curr;
+            curr = control.gameMoves[index];
+            x.setText("x = " + std::to_string(curr.x));
+            y.setText("y = " + std::to_string(curr.y));
+            vector.setText("vector = " + std::to_string(curr.vector));
+            if (curr.type) {
+                type.setText("type = BEAT");
+            }
+            else {
+                type.setText("type = MOVE");
+            }
+            assess.setText("assess = " + std::to_string(curr.assess));
+            coord.setText("coord = " + std::to_string(curr.coord[0]) + std::to_string(curr.coord[1]) + std::to_string(curr.coord[2]) + std::to_string(curr.coord[3]));
+            if (curr.turn) {
+                turnl.setText("White turn");
+            }
+            else {
+                turnl.setText("Black turn");
+            }
+        }
+    }
+
+    void draw() {
+        win.clear();
+        win.draw(background);
+        board.draw(win);
+        exitB.draw(win);
+        flipB.draw(win);
+        analysicsB.draw(win);
+
+        setText(control.curr);
+        x.draw(win);
+        y.draw(win);
+        vector.draw(win);
+        assess.draw(win);
+        coord.draw(win);
+        type.draw(win);
+        turnl.draw(win);
+
+        wait.draw(win);
+        win.display();
+    }
+
+    void loading() {
+        while (!connected) {
+            wait.setNext();
+            sleep(milliseconds(500));
+            draw();
+        }
+    }
+public:
+    TPvpForm() : win(VideoMode(winH, winW), "Russian checkers", Style::Close) {
+
+        win.setIcon(512, 512, icon.getPixelsPtr());
+        win.setFramerateLimit(60);
+        win.setVerticalSyncEnabled(true);
+
+        background.setSize(Vector2f(win.getSize()));
+        background.setFillColor(Color::White);
+
+        x.setPos(1100, 250);
+        x.setText("x = 0");
+        y.setPos(1100, 300);
+        y.setText("y = 0");
+        vector.setPos(1100, 350);
+        vector.setText("vector = 0");
+        assess.setPos(1100, 400);
+        assess.setText("assess = 0");
+        coord.setPos(1100, 450);
+        coord.setText("coord = 0");
+        type.setPos(1100, 500);
+        type.setText("type = 0");
+        turnl.setPos(1100, 550);
+        turnl.setText("turn = true");
+
+        exitB.setSize(230, 60);
+        exitB.setThickness(2);
+        exitB.setColor(Color::Green);
+        exitB.setText("Exit to main menu");
+        exitB.setPos(1100, 700);
+
+        board.setField(control.field);
+        board.setPos(leftW, menuH);
+
+        flipB.setSize(100, 30);
+        flipB.setColor(Color::Green);
+        flipB.setText("Flip");
+        flipB.setPos(50, 920);
+
+        analysicsB.setSize(200, 60);
+        analysicsB.setColor(Color::Green);
+        analysicsB.setText("Analysics");
+        analysicsB.setPos(1100, 100);
+        analysicsB.setThickness(2);
+
+
+        board.setField(control.field);
+        wait.setPos(400, 400);
+        wait.setRadius(100);
+
+        draw();
+    }
+    void poll() {
+
+        Vector2f LPPos, LRPos;
+
+        sf::Thread loadingThread(&TPvpForm::loading, this);
+        loadingThread.launch();
+
+        sf::Thread receiveTurn(&TPvpForm::receiveTurn, this);
+        receiveTurn.launch();
+
+        sf::Thread receiveThread(&TPvpForm::receiveOpponentMove, this);
+        receiveThread.launch();
+
+        while (win.isOpen())
+        {
+            Event event;
+            if (opponentMoveReceived) {
+                board.setField(control.field);
+                setText(control.curr);
+                draw();
+                opponentMoveReceived = false;
+            }
+
+            while (win.pollEvent(event))
+            {
+                if (event.type == Event::Closed) {
+                    connected = true;
+                    loadingThread.wait();
+                    receiveThread.wait();
+                    receiveTurn.wait();
+                    win.close();
+                    open = false;
+                }
+                else if (event.type == Event::MouseButtonPressed) {
+                    Vector2f pos = Vector2f(Mouse::getPosition(win));
+                    if (exitB.isPressed(pos)) {
+                        loadingThread.wait();
+                        receiveThread.wait();
+                        receiveTurn.wait();
+                        win.close();
+                        open = true;
+                    }
+                    else if (flipB.isPressed(pos)) {
+                        board.flip();
+                    }
+                    else if (analysicsB.isPressed(pos)) {
+                        RenderWindow start(VideoMode(1400, 1000), "VOBLA", Style::Close);
+                        start.setFramerateLimit(60);
+                        start.setVerticalSyncEnabled(true);
+
+                        TAnalysicsForm form1(start, control.gameMoves);
+                        form1.poll();
+                    }
+                    else {
+                        if (event.mouseButton.button == Mouse::Left) {
+                            LP = true;
+                            LPPos = pos;
+                        }
+                        else if (event.mouseButton.button == Mouse::Right) {
+                            board.redSet(pos);
+                        }
+                    }
+                }
+                else if (event.type == Event::MouseButtonReleased) {
+                    if (LP) {
+                        Vector2f pos = Vector2f(Mouse::getPosition(win));
+                        if (event.mouseButton.button == Mouse::Left) {
+                            LR = true;
+                            LRPos = pos;
+                        }
+                    }
+                }
+                else if (Keyboard::isKeyPressed(Keyboard::Up)) {
+                    control.getCurr();
+                    setText(control.curr);
+                    board.setField(control.field);
+                }
+                else if (Keyboard::isKeyPressed(Keyboard::Left)) {
+                    control.getPrev();
+                    setText(control.curr);
+                    board.setField(control.field);
+                }
+                else if (Keyboard::isKeyPressed(Keyboard::Right)) {
+                    control.getNext();
+                    setText(control.curr);
+                    board.setField(control.field);
+                }
+                if (LP && LR) {
+                    LP = false;
+                    LR = false;
+
+                    mytype coord[4];
+                    board.getCoord(LPPos, LRPos, coord);
+                    MOVE_RESULT result = control.PlayerMove(coord[0], coord[1], coord[2], coord[3]);
+                    if (result != INVALID_COORD) {
+                        board.setField(control.field);
+                        sendMove(coord[0], coord[1], coord[2], coord[3]);
+                    }
+                }
+            }
+            draw();
+        }
+    }
+};
 
 int main()
 {
-
-    Image icon;
     if (!icon.loadFromFile("Image/icon.png")) {
         return 1;
     }
@@ -565,21 +889,15 @@ int main()
 
     while (open) {
         if (open) {
-            RenderWindow start(VideoMode(760, 850), "VOBLA", Style::Close);
-            start.setIcon(512, 512, icon.getPixelsPtr());
-            start.setFramerateLimit(60);
-            start.setVerticalSyncEnabled(true);
-            
-            TStartForm form(start);
+            TStartForm form;
             form.poll();
         }
-        if (open) {
-            RenderWindow main(VideoMode(winH, winW), "VOBLA", Style::Close);
-            main.setIcon(512, 512, icon.getPixelsPtr());
-            main.setFramerateLimit(60);
-            main.setVerticalSyncEnabled(true);
-            
-            TMainForm form(main, turn);
+        if (open && !pvp) {
+            TEngineForm form;
+            form.poll();
+        }
+        else if (open) {
+            TPvpForm form;
             form.poll();
         }
     }
