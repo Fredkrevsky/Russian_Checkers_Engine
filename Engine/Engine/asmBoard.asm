@@ -234,11 +234,11 @@ movsx r10, byte ptr[rbp + 48]
 mov rsi, rcx  
 mov rdi, rcx
 
-imul rdx, 8
+shl rdx, 3     ;imul rdx, 8
 add rsi, rdx
 add rsi, r8
 
-imul r9, 8
+shl r9, 3      ;imul r9, 8
 add rdi, r9
 add rdi, r10
 
@@ -268,11 +268,11 @@ movsx r10, byte ptr[rbp + 48]
 mov rsi, rcx  
 mov rdi, rcx
 
-imul rdx, 8
+shl rdx, 3        ;imul rdx, 8
 add rsi, rdx
 add rsi, r8
 
-imul r9, 8
+shl r9, 3         ;imul r9, 8
 add rdi, r9
 add rdi, r10
 
@@ -334,7 +334,7 @@ jz Ending
 and r9, 0FFh
 xor rax, rax
 
-imul r9, 8
+shl r9, 3            ;imul r9, 8
 add r9b, cl
 add rsi, r9
 
@@ -372,7 +372,7 @@ inc r10b
 
 and r9, 0FFh
 mov r13, r9
-imul r13, 8
+shl r13, 3                ;imul r13, 8
 add r13b, cl
 add rdi, r13
 mov r12b, byte ptr[rdi]
@@ -416,7 +416,7 @@ dec r13b
 
 LOR:
 and r12, 0FFh
-imul r12, 8
+shl r12, 3;           imul r12, 8
 add r12b, r13b
 add rsi, r12
 
@@ -516,7 +516,9 @@ jz Ending
 xor r12, r12
 mov r12, r10
 sub r12, r11
-imul r12, 5
+mov r13, r12      ;imul prepare
+shl r12, 2        ;imul r12, 5
+add r12, r13      ;imul end
 add r12, r8
 sub r12, r9
 mov rax, r12
@@ -566,8 +568,8 @@ cmp r10b, 4
 je next4
 
 xor rax, rax
-mov al, 8
-mul r11b
+mov al, r11b		;mov al, 8
+shl al, 3			;mul r11b
 add al, r12b
 add rdi, rax
 
@@ -620,8 +622,8 @@ mov r12, r14
 mov rdi, rsi
 
 xor rax, rax
-mov al, 8
-mul r11b
+mov al, r11b		;mov al, 8
+shl al, 3   		;mul r11b
 add al, r12b
 add rdi, rax
 
@@ -674,8 +676,8 @@ mov r12, r14
 mov rdi, rsi
 
 xor rax, rax
-mov al, 8
-mul r11b
+mov al, r11b		;mov al, 8
+shl al, 3		    ;mul r11b
 add al, r12b
 add rdi, rax
 
@@ -728,8 +730,8 @@ mov r12, r14
 mov rdi, rsi
 
 xor rax, rax
-mov al, 8
-mul r11b
+mov al, r11b		;mov al, 8
+shl al, 3           ;mul r11b
 add al, r12b
 add rdi, rax
 
@@ -806,14 +808,14 @@ mov rdi, rcx
 xor rcx, rcx
 
 xor rax, rax
-mov al, 8
-mul r11b
+mov al, r11b		;mov al, 8
+shl al, 3    		;mul r11b
 add al, r12b
 add rsi, rax
 
 xor rax, rax
-mov al, 8
-mul r13b
+mov al, r13b		;mov al, 8
+shl al, 3			;mul r13b
 add al, r14b
 add rdi, rax 
 

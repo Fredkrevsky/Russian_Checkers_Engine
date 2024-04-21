@@ -556,9 +556,6 @@ public:
                             LP = true;
                             LPPos = pos;
                         }
-                        else if (event.mouseButton.button == Mouse::Right) {
-                            board.redSet(pos);
-                        }
                     }
                 }
                 else if (event.type == Event::MouseButtonReleased) {
@@ -623,6 +620,8 @@ class TPvpForm {
     bool opponentMoveReceived = false;
     bool connected = false;
 
+    std::vector<int> vMoves;
+
     RectangleShape background;
 
     RenderWindow win;
@@ -630,64 +629,100 @@ class TPvpForm {
     TButton exitB, flipB, analysicsB;
     TBoard board;
 
-    TLabel x, y, vector, assess, coord, type, turnl;
     TWait wait;
 
     GameController control;
 
+    enum Type {
+        INIT,
+        MOVEREQ,
+        MOVEREPLY,
+    };
+
+    void addMove(mytype x1, mytype y1, mytype x2, mytype y2) {
+        if (CheckCoord(x1, y1) && CheckCoord(x2, y2)) {
+            if (x1 == x2 && y1 == y2) {
+                board.redReset();
+                vMoves.clear();
+            }
+            else {
+                if (vMoves.size() || turn != control.turn) {
+                    board.redSet(x1, y1, x2, y2);
+                }
+                vMoves.push_back(x1 * 1000 + y1 * 100 + x2 * 10 + y2);
+
+                if (control.turn == turn) {
+                    int temp = vMoves[0];
+                    sendMove(temp / 1000, (temp / 100) % 10, (temp / 10) % 10, temp % 10);
+                    vMoves.erase(vMoves.begin());
+                }
+            }
+        }
+    }
+
     void sendMove(mytype x1, mytype y1, mytype x2, mytype y2) {
-        Packet packet;
-        packet << x1 << y1 << x2 << y2;
-        socket.send(packet);
+        if (CheckCoord(x1, y1) && CheckCoord(x2, y2)) {
+            Packet packet;
+            packet << (uint8_t)MOVEREQ << x1 << y1 << x2 << y2;
+            socket.send(packet);
+        }
     }
 
-    void receiveOpponentMove() {
+    void receive() {
         Packet packet;
-        mytype x1, y1, x2, y2;
-
+        uint8_t type;
         if (socket.receive(packet) == Socket::Done) {
-            packet >> x1 >> y1 >> x2 >> y2;
-            control.PlayerMove(x1, y1, x2, y2);
-            opponentMoveReceived = true;
-        }
-    }
-
-    void receiveTurn() {
-        Packet packet;
-        uint8_t temp;
-        uint32_t tturn = 0;
-
-        if (!connected && socket.receive(packet) == Socket::Done) {
-            packet >> tturn;
-            turn = tturn;
-            connected = true;
-            if (!turn) {
-                board.flip();
+            packet >> type;
+            switch (type) {
+            case INIT:
+                packet >> turn;
+                connected = true;
+                opponentMoveReceived = true;
+                if (!turn) {
+                    board.flip();
+                }
+                wait.setVisible(false);
+                draw();
+                break;
+            case MOVEREQ:
+                mytype x1, y1, x2, y2;
+                mytype result;
+                packet >> result >> x1 >> y1 >> x2 >> y2;
+                switch (result) {
+                case MOVE_RESULT::DRAW:
+                    vMoves.clear();
+                    board.redReset();
+                    break;
+                case MOVE_RESULT::INVALID_COORD:
+                    vMoves.clear();
+                    board.redReset();
+                    break;
+                case MOVE_RESULT::LOSE:
+                    vMoves.clear();
+                    board.redReset();
+                    break;
+                case MOVE_RESULT::ONE_MORE:
+                    board.redReset(x1, y1, x2, y2);
+                    control.PlayerMove(x1, y1, x2, y2);
+                    break;
+                case MOVE_RESULT::SUCCESS:
+                    board.redReset(x1, y1, x2, y2);
+                    control.PlayerMove(x1, y1, x2, y2);
+                    break;
+                case MOVE_RESULT::WIN:
+                    vMoves.clear();
+                    board.redReset();
+                    control.PlayerMove(x1, y1, x2, y2);
+                    break;
+                }
+                opponentMoveReceived = true;
+                break;
             }
-            draw();
-        }
-    }
-
-    void setText(int index) {
-        if (control.gameMoves.size() > index) {
-            MoveData curr;
-            curr = control.gameMoves[index];
-            x.setText("x = " + std::to_string(curr.x));
-            y.setText("y = " + std::to_string(curr.y));
-            vector.setText("vector = " + std::to_string(curr.vector));
-            if (curr.type) {
-                type.setText("type = BEAT");
-            }
-            else {
-                type.setText("type = MOVE");
-            }
-            assess.setText("assess = " + std::to_string(curr.assess));
-            coord.setText("coord = " + std::to_string(curr.coord[0]) + std::to_string(curr.coord[1]) + std::to_string(curr.coord[2]) + std::to_string(curr.coord[3]));
-            if (curr.turn) {
-                turnl.setText("White turn");
-            }
-            else {
-                turnl.setText("Black turn");
+            if (control.turn == turn && vMoves.size()) {
+                int temp = vMoves[0];
+                sendMove(temp / 1000, (temp / 100) % 10, (temp / 10) % 10, temp % 10);
+                board.redReset(temp / 1000, (temp / 100) % 10, (temp / 10) % 10, temp % 10);
+                vMoves.erase(vMoves.begin());
             }
         }
     }
@@ -700,15 +735,6 @@ class TPvpForm {
         flipB.draw(win);
         analysicsB.draw(win);
 
-        setText(control.curr);
-        x.draw(win);
-        y.draw(win);
-        vector.draw(win);
-        assess.draw(win);
-        coord.draw(win);
-        type.draw(win);
-        turnl.draw(win);
-
         wait.draw(win);
         win.display();
     }
@@ -716,7 +742,7 @@ class TPvpForm {
     void loading() {
         while (!connected) {
             wait.setNext();
-            sleep(milliseconds(500));
+            sleep(milliseconds(300));
             draw();
         }
     }
@@ -729,21 +755,6 @@ public:
 
         background.setSize(Vector2f(win.getSize()));
         background.setFillColor(Color::White);
-
-        x.setPos(1100, 250);
-        x.setText("x = 0");
-        y.setPos(1100, 300);
-        y.setText("y = 0");
-        vector.setPos(1100, 350);
-        vector.setText("vector = 0");
-        assess.setPos(1100, 400);
-        assess.setText("assess = 0");
-        coord.setPos(1100, 450);
-        coord.setText("coord = 0");
-        type.setPos(1100, 500);
-        type.setText("type = 0");
-        turnl.setPos(1100, 550);
-        turnl.setText("turn = true");
 
         exitB.setSize(230, 60);
         exitB.setThickness(2);
@@ -779,38 +790,28 @@ public:
         sf::Thread loadingThread(&TPvpForm::loading, this);
         loadingThread.launch();
 
-        sf::Thread receiveTurn(&TPvpForm::receiveTurn, this);
+        sf::Thread receiveTurn(&TPvpForm::receive, this);
         receiveTurn.launch();
-
-        sf::Thread receiveThread(&TPvpForm::receiveOpponentMove, this);
-        receiveThread.launch();
 
         while (win.isOpen())
         {
             Event event;
             if (opponentMoveReceived) {
                 board.setField(control.field);
-                setText(control.curr);
                 draw();
                 opponentMoveReceived = false;
+                receiveTurn.launch();
             }
 
             while (win.pollEvent(event))
             {
                 if (event.type == Event::Closed) {
-                    connected = true;
-                    loadingThread.wait();
-                    receiveThread.wait();
-                    receiveTurn.wait();
                     win.close();
                     open = false;
                 }
                 else if (event.type == Event::MouseButtonPressed) {
                     Vector2f pos = Vector2f(Mouse::getPosition(win));
                     if (exitB.isPressed(pos)) {
-                        loadingThread.wait();
-                        receiveThread.wait();
-                        receiveTurn.wait();
                         win.close();
                         open = true;
                     }
@@ -830,9 +831,6 @@ public:
                             LP = true;
                             LPPos = pos;
                         }
-                        else if (event.mouseButton.button == Mouse::Right) {
-                            board.redSet(pos);
-                        }
                     }
                 }
                 else if (event.type == Event::MouseButtonReleased) {
@@ -846,17 +844,16 @@ public:
                 }
                 else if (Keyboard::isKeyPressed(Keyboard::Up)) {
                     control.getCurr();
-                    setText(control.curr);
                     board.setField(control.field);
                 }
                 else if (Keyboard::isKeyPressed(Keyboard::Left)) {
+                    vMoves.clear();
+                    board.redReset();
                     control.getPrev();
-                    setText(control.curr);
                     board.setField(control.field);
                 }
                 else if (Keyboard::isKeyPressed(Keyboard::Right)) {
                     control.getNext();
-                    setText(control.curr);
                     board.setField(control.field);
                 }
                 if (LP && LR) {
@@ -865,15 +862,16 @@ public:
 
                     mytype coord[4];
                     board.getCoord(LPPos, LRPos, coord);
-                    MOVE_RESULT result = control.PlayerMove(coord[0], coord[1], coord[2], coord[3]);
-                    if (result != INVALID_COORD) {
-                        board.setField(control.field);
-                        sendMove(coord[0], coord[1], coord[2], coord[3]);
-                    }
+                    addMove(coord[0], coord[1], coord[2], coord[3]);
                 }
             }
             draw();
         }
+        connected = true;
+        receiveTurn.wait();
+        loadingThread.wait();
+        socket.disconnect();
+        listener.close();
     }
 };
 
@@ -889,16 +887,19 @@ int main()
 
     while (open) {
         if (open) {
-            TStartForm form;
-            form.poll();
+            TStartForm* form = new TStartForm();
+            form->poll();
+            delete form;
         }
         if (open && !pvp) {
-            TEngineForm form;
-            form.poll();
+            TEngineForm* form = new TEngineForm();
+            form->poll();
+            delete form;
         }
         else if (open) {
-            TPvpForm form;
-            form.poll();
+            TPvpForm* form = new TPvpForm;
+            form->poll();
+            delete form;
         }
     }
 

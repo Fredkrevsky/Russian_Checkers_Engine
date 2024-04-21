@@ -30,7 +30,6 @@ void TBoard::setField(TField& toSet) {
     }
 }
 void TBoard::getCoord(Vector2f start, Vector2f end, mytype* coord) {
-    redReset();
 
     mytype x1 = (start.x - x) / tileSize;
     mytype y1 = (start.y - y) / tileSize;
@@ -53,13 +52,34 @@ void TBoard::getCoord(Vector2f start, Vector2f end, mytype* coord) {
     coord[3] = y2;
 
 }
-void TBoard::redSet(Vector2f& start) {
-    int x0 = (start.x - x) / tileSize;
-    int y0 = (start.y - y) / tileSize;
-    y0 = 7 - y0;
+void TBoard::redSet(mytype x1, mytype y1, mytype x2, mytype y2) {
+    if (flipped) {
+        x1 = 7 - x1;
+        x2 = 7 - x2;
+        y1 = 7 - y1;
+        y2 = 7 - y2;
+    }
 
-    if ((x0 >= 0) && (y0 >= 0) && (x0 < 8) && (y0 < 8) && ((x0 + y0) % 2 == 0)) {
-        red[x0][y0] = !red[x0][y0];
+    if ((x1 >= 0) && (y1 >= 0) && (x1 < 8) && (y1 < 8) && ((x1 + y1) % 2 == 0)) {
+        red[x1][y1] = true;
+    }
+    if ((x2 >= 0) && (y2 >= 0) && (x2 < 8) && (y2 < 8) && ((x2 + y2) % 2 == 0)) {
+        red[x2][y2] = true;
+    }
+}
+void TBoard::redReset(mytype x1, mytype y1, mytype x2, mytype y2) {
+    if (flipped) {
+        x1 = 7 - x1;
+        x2 = 7 - x2;
+        y1 = 7 - y1;
+        y2 = 7 - y2;
+    }
+
+    if ((x1 >= 0) && (y1 >= 0) && (x1 < 8) && (y1 < 8) && ((x1 + y1) % 2 == 0)) {
+        red[x1][y1] = false;
+    }
+    if ((x2 >= 0) && (y2 >= 0) && (x2 < 8) && (y2 < 8) && ((x2 + y2) % 2 == 0)) {
+        red[x2][y2] = false;
     }
 }
 void TBoard::flip() {
@@ -80,9 +100,13 @@ void TBoard::flip() {
     flipped = !flipped;
 }
 void TBoard::draw(RenderWindow& win) {
+    RectangleShape cell(Vector2f(tileSize, tileSize));
+    CircleShape checker(tileSize / 2 - 10);
+    CircleShape in(tileSize / 4 - 5);
+
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
-            RectangleShape cell(Vector2f(tileSize, tileSize));
+
             if (red[i][j]) {
                 cell.setFillColor(Color(212, 109, 81));
             }
@@ -99,7 +123,7 @@ void TBoard::draw(RenderWindow& win) {
             win.draw(cell);
 
             if (field[i][j] != 0) {
-                CircleShape checker(tileSize / 2 - 10);
+
                 checker.setPosition(x + i * tileSize + 10, y + (7 - j) * tileSize + 10);
 
                 if ((field[i][j] == 1) || (field[i][j] == 3)) {
@@ -110,13 +134,11 @@ void TBoard::draw(RenderWindow& win) {
                 }
                 win.draw(checker);
                 if (field[i][j] == 3) {
-                    CircleShape in(tileSize / 4 - 5);
                     in.setPosition(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5);
                     in.setFillColor(Color(30, 30, 30));
                     win.draw(in);
                 }
                 else if (field[i][j] == 4) {
-                    CircleShape in(tileSize / 4 - 5);
                     in.setPosition(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5);
                     in.setFillColor(Color(230, 230, 230));
                     win.draw(in);
@@ -458,6 +480,197 @@ void TAssessBar::flip() {
     second.setFillColor(temp);
 }
 
+TCommentSection::TCommentSection() : TObject() {
+    setThickness(2);
+    for (int i = 0; i < 10; ++i) {
+        values.push_back(0);
+    }
+
+    Text text;
+    text.setFont(font);
+    text.setCharacterSize(fontSize);
+    text.setFillColor(Color::Black);
+    text.setString("Results:");
+    text.setPosition(x + 50, y);
+    vText.push_back(text);
+
+    text.setString("0");
+    text.setPosition(x, y + 50);
+    vText.push_back(text);
+    text.setString("Best");
+    text.setPosition(x + 30, y + 50);
+    vText.push_back(text);
+    text.setString("0");
+    text.setPosition(x + 200, y + 50);
+    vText.push_back(text);
+
+    text.setString("0");
+    text.setPosition(x, y + 100);
+    vText.push_back(text);
+    text.setString("Good");
+    text.setPosition(x + 30, y + 100);
+    vText.push_back(text);
+    text.setString("0");
+    text.setPosition(x + 200, y + 100);
+    vText.push_back(text);
+
+    text.setString("0");
+    text.setPosition(x, y + 150);
+    vText.push_back(text);
+    text.setString("Forced");
+    text.setPosition(x + 30, y + 150);
+    vText.push_back(text);
+    text.setString("0");
+    text.setPosition(x + 200, y + 150);
+    vText.push_back(text);
+
+    text.setString("0");
+    text.setPosition(x, y + 200);
+    vText.push_back(text);
+    text.setString("Inaccuracy");
+    text.setPosition(x + 30, y + 200);
+    vText.push_back(text);
+    text.setString("0");
+    text.setPosition(x + 200, y + 200);
+    vText.push_back(text);
+
+    text.setString("0");
+    text.setPosition(x, y + 250);
+    vText.push_back(text);
+    text.setString("Blunder");
+    text.setPosition(x + 30, y + 250);
+    vText.push_back(text);
+    text.setString("0");
+    text.setPosition(x + 200, y + 250);
+    vText.push_back(text);
+
+    text.setPosition(x, y + 320);
+    text.setString("White accuracy:");
+    vText.push_back(text);
+    text.setPosition(x + 200, y + 320);
+    text.setString("0.0%");
+    vText.push_back(text);
+
+    text.setPosition(x, y + 370);
+    text.setString("Black accuracy:");
+    vText.push_back(text);
+    text.setPosition(x + 200, y + 370);
+    text.setString("0.0%");
+    vText.push_back(text);
+}
+void TCommentSection::setPos(int x0, int y0) {
+    TObject::setPos(x0, y0);
+
+    vText[0].setPosition(x0 + 50, y0);
+    vText[1].setPosition(x0, y0 + 50);
+    vText[2].setPosition(x0 + 30, y0 + 50);
+    vText[3].setPosition(x0 + 200, y0 + 50);
+
+    vText[4].setPosition(x0, y0 + 100);
+    vText[5].setPosition(x0 + 30, y0 + 100);
+    vText[6].setPosition(x0 + 200, y0 + 100);
+
+    vText[7].setPosition(x0, y0 + 150);
+    vText[8].setPosition(x0 + 30, y0 + 150);
+    vText[9].setPosition(x0 + 200, y0 + 150);
+
+    vText[10].setPosition(x0, y0 + 200);
+    vText[11].setPosition(x0 + 30, y0 + 200);
+    vText[12].setPosition(x0 + 200, y0 + 200);
+
+    vText[13].setPosition(x0, y0 + 250);
+    vText[14].setPosition(x0 + 30, y0 + 250);
+    vText[15].setPosition(x0 + 200, y0 + 250);
+
+    vText[16].setPosition(x0, y0 + 320);
+    vText[17].setPosition(x0 + 200, y0 + 320);
+    vText[18].setPosition(x0, y0 + 370);
+    vText[19].setPosition(x0 + 200, y0 + 370);
+
+}
+void TCommentSection::setValues(std::vector<MoveData>& vdata) {
+    int white, black, sumwhite, sumblack;
+    sumblack = sumwhite = white = black = 0;
+    for (int i = 1; i < vdata.size(); ++i) {
+        switch (vdata[i].comment) {
+        case BEST:
+            if (vdata[i].turn) {
+                values[0]++;
+                sumwhite += 10;
+                white += 10;
+            }
+            else {
+                values[1]++;
+                sumblack += 10;
+                black += 10;
+            }
+            break;
+        case GOOD:
+            if (vdata[i].turn) {
+                values[2]++;
+                sumwhite += 10;
+                white += 10;
+            }
+            else {
+                values[3]++;
+                sumblack += 10;
+                black += 10;
+            }
+            break;
+        case FORCED:
+            if (vdata[i].turn) {
+                values[4]++;
+                sumwhite += 10;
+                white += 10;
+            }
+            else {
+                values[5]++;
+                sumblack += 10;
+                black += 10;
+            }
+            break;
+        case INACCURACY: 
+            if (vdata[i].turn) {
+                values[6]++;
+                sumwhite += 10;
+                white += 3;
+            }
+            else {
+                values[7]++;
+                sumblack += 10;
+                black += 3;
+            }
+            break;
+        case BLUNDER:
+            if (vdata[i].turn) {
+                values[8]++;
+                sumwhite += 10;
+            }
+            else {
+                values[9]++;
+                sumblack += 10;
+            }
+            break;
+        }
+    }
+    for (int i = 0; i < 5; ++i) {
+        vText[3 * i + 1].setString(std::to_string(values[2 * i]));
+        vText[3 * i + 3].setString(std::to_string(values[2 * i + 1]));
+    }
+    if (sumwhite) {
+        vText[17].setString(std::to_string(white * 100 / sumwhite) + "." + std::to_string((white * 1000 / sumwhite) % 10) + "%");
+    }
+    if (sumblack) {
+        vText[19].setString(std::to_string(black * 100 / sumblack) + "." + std::to_string((black * 1000 / sumblack) % 10) + "%");
+    }
+}
+void TCommentSection::draw(RenderWindow& win) {
+    TObject::draw(win);
+    for (auto& elem : vText) {
+        win.draw(elem);
+    }
+}
+
 void GameController::getData(MoveData& source) {
     assess = source.assess;
     BCopy(field, source.field);
@@ -718,7 +931,12 @@ void TWait::setPos() {
     mas[5].setPosition(x, y + radius / 2);
 }
 void TWait::draw(RenderWindow& win) {
-    for (int i = 0; i < 6; ++i) {
-        win.draw(mas[i]);
+    if (visible) {
+        for (int i = 0; i < 6; ++i) {
+            win.draw(mas[i]);
+        }
     }
+}
+void TWait::setVisible(bool toSet) {
+    visible = toSet;
 }
