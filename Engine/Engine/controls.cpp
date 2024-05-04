@@ -18,6 +18,7 @@ TBoard::TBoard() : TObject(){
     forced.loadFromFile("Image/forced.png");
     good.loadFromFile("Image/good.png");
     inac.loadFromFile("Image/inaccurasy.png");
+    isCaptured = false;
 }
 void TBoard::setPos(int x0, int y0) {
     TObject::setPos(x0, y0);
@@ -28,6 +29,7 @@ void TBoard::setField(TField& toSet) {
         flip();
         flipped = true;
     }
+    isCaptured = false;
 }
 void TBoard::getCoord(Vector2f start, Vector2f end, mytype* coord) {
 
@@ -99,7 +101,7 @@ void TBoard::flip() {
     }
     flipped = !flipped;
 }
-void TBoard::draw(RenderWindow& win) {
+void TBoard::draw(RenderWindow& win, int posx, int posy) {
     RectangleShape cell(Vector2f(tileSize, tileSize));
     CircleShape checker(tileSize / 2 - 10);
     CircleShape in(tileSize / 4 - 5);
@@ -132,16 +134,18 @@ void TBoard::draw(RenderWindow& win) {
                 else if ((field[i][j] == 2) || (field[i][j] == 4)) {
                     checker.setFillColor(Color(30, 30, 30));
                 }
-                win.draw(checker);
-                if (field[i][j] == 3) {
-                    in.setPosition(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5);
-                    in.setFillColor(Color(30, 30, 30));
-                    win.draw(in);
-                }
-                else if (field[i][j] == 4) {
-                    in.setPosition(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5);
-                    in.setFillColor(Color(230, 230, 230));
-                    win.draw(in);
+                if (!isCaptured || i != cx || j != cy) {
+                    win.draw(checker);
+                    if (field[i][j] == 3) {
+                        in.setPosition(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5);
+                        in.setFillColor(Color(30, 30, 30));
+                        win.draw(in);
+                    }
+                    else if (field[i][j] == 4) {
+                        in.setPosition(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5);
+                        in.setFillColor(Color(230, 230, 230));
+                        win.draw(in);
+                    }
                 }
             }
         }
@@ -170,6 +174,46 @@ void TBoard::draw(RenderWindow& win) {
         sprite.setScale(scaleFactor, scaleFactor);
         win.draw(sprite);
     }
+    if (isCaptured) {
+        CircleShape checker(tileSize / 2 - 10);
+        CircleShape in(tileSize / 4 - 5);
+
+        if ((field[cx][cy] == 1) || (field[cx][cy] == 3)) {
+            checker.setFillColor(Color(230, 230, 230));
+        }
+        else if ((field[cx][cy] == 2) || (field[cx][cy] == 4)) {
+            checker.setFillColor(Color(30, 30, 30));
+        }
+        checker.setPosition(posx - tileSize / 2 + 10, posy - tileSize / 2 + 10);
+
+        if (field[cx][cy]) {
+            win.draw(checker);
+        }
+
+        if (field[cx][cy] == 3) {
+            in.setPosition(posx - tileSize / 4 + 5, posy - tileSize / 4 + 5);
+            in.setFillColor(Color(30, 30, 30));
+            win.draw(in);
+        }
+        else if (field[cx][cy] == 4) {
+            in.setPosition(posx - tileSize / 4 + 5, posy - tileSize / 4 + 5);
+            in.setFillColor(Color(230, 230, 230));
+            win.draw(in);
+        }
+    }
+}
+void TBoard::capture(int posx, int posy) {
+    isCaptured = true;
+    cx = (posx - x) / tileSize;
+    cy = (posy - y) / tileSize;
+    cy = 7 - cy;
+
+    if (cx >= 0 && cx < 8 && cy >= 0 && cy < 8 && (cx + cy) % 2 == 0) {
+        isCaptured = true;
+    }
+}
+void TBoard::uncatch() {
+    isCaptured = false;
 }
 void TBoard::setComment(MOVE_STATUS tcomment, mytype tx1, mytype ty1, mytype tx2, mytype ty2) {
     x1 = tx1;
@@ -939,4 +983,58 @@ void TWait::draw(RenderWindow& win) {
 }
 void TWait::setVisible(bool toSet) {
     visible = toSet;
+}
+
+
+void TClock::tictac() {
+    while (gameIsGoing && value > 0) {
+        sf::sleep(sf::milliseconds(1000));
+        if (yourTurn) {
+            value--;
+            text.setString(getStringTime(value));
+        }
+    }
+}
+std::string TClock::getStringTime(int seconds) {
+    return std::to_string(seconds / 60) + ":" + std::to_string(seconds % 60 / 10) + std::to_string(seconds % 10);
+}
+TClock::TClock() : TObject(){
+    value = 0;
+    setThickness(3);
+    background.setFillColor(Color::White);
+    text.setString(getStringTime(0));
+    text.setFillColor(Color::Black);
+    text.setCharacterSize(32);
+    text.setFont(font);
+    thread = new sf::Thread(&TClock::tictac, this);
+    setSize(150, 50);
+}
+void TClock::update(int seconds) {
+    value = seconds;
+    text.setString(getStringTime(seconds));
+}
+void TClock::setPos(int tx, int ty) {
+    TObject::setPos(tx, ty);
+    text.setPosition(tx + 47, ty + 4);
+}
+void TClock::start() {
+    gameIsGoing = true;
+    yourTurn = true;
+    thread->launch();
+}
+void TClock::pause() {
+    background.setFillColor(Color(220, 220, 220));
+    yourTurn = false;
+}
+void TClock::release() {
+    background.setFillColor(Color::White);
+    yourTurn = true;
+}
+void TClock::draw(RenderWindow& win) {
+    TObject::draw(win);
+    win.draw(text);
+}
+void TClock::stop() {
+    gameIsGoing = false;
+    thread->terminate();
 }

@@ -370,8 +370,11 @@ MOVE_RESULT Engine::EngineMove(MoveData& data, mytype depth) {
 	float assess = 0;
 	bool turn = data.turn;
 
-	fill(field, type, x, y, vector, turn, depth);
+	fill(field, type, x, y, vector, turn);
 
+	if (moves.size() > 1) {
+		fill(field, type, x, y, vector, turn, depth);
+	}
 	if (moves.size() > 0) {
 		MoveData move = moves[0];
 

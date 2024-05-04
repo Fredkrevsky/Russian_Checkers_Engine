@@ -128,15 +128,23 @@ public:
     void draw(RenderWindow& win);
 };
 
-class Clock : public TObject {
+class TClock : public TObject {
+    volatile bool gameIsGoing;
+    volatile bool yourTurn;
+    sf::Thread* thread;
     int value;
     Text text;
+    std::string getStringTime(int seconds);
+    void tictac();
 public:
-    Clock();
+    TClock();
     void update(int seconds);
     void start();
     void pause();
-    void draw();
+    void draw(RenderWindow& win);
+    void setPos(int tx, int ty) override;
+    void release();
+    void stop();
 };
 
 class TBoard : TObject {
@@ -147,8 +155,12 @@ class TBoard : TObject {
     MOVE_STATUS comment;
 
     Texture forced, best, good, inac, blunder;
+    bool isCaptured;
+    mytype cx = -1, cy = -1;
 
 public:
+    void capture(int posx, int posy);
+    void uncatch();
     void redReset();
     TBoard();
     void setPos(int x0, int y0) override;
@@ -157,7 +169,7 @@ public:
     void redSet(mytype x1, mytype y1, mytype x2, mytype y2);
     void redReset(mytype x1, mytype y1, mytype x2, mytype y2);
     void flip();
-    void draw(RenderWindow& win);
+    void draw(RenderWindow& win, int posx, int posy);
     void setComment(MOVE_STATUS comment, mytype x1, mytype y1, mytype x2, mytype y2);
 };
 
