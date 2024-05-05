@@ -1,4 +1,5 @@
 #include "forms.h"
+#include <functional>
 
 void TAnalysicsForm::drawprogress() {
     win.clear();
@@ -271,7 +272,6 @@ void TStartForm::poll() {
                 }
                 if (index != -1) {
                     if (index == 0) {
-                        mode = false;
                         vChoice[0].setStatus(true);
                         vChoice[1].setStatus(false);
                         for (int i = 4; i < 8; ++i) {
@@ -287,7 +287,6 @@ void TStartForm::poll() {
                         pvp = true;
                     }
                     else if (index == 1) {
-                        mode = true;
                         vChoice[1].setStatus(true);
                         vChoice[0].setStatus(false);
                         for (int i = 4; i < 8; ++i) {
@@ -398,7 +397,7 @@ void TEngineForm::draw(int posx, int posy) {
 TEngineForm::TEngineForm() : win(VideoMode(winH, winW), "Russian checkers", Style::Close) {
 
     win.setIcon(512, 512, icon.getPixelsPtr());
-    win.setFramerateLimit(60);
+    win.setFramerateLimit(150);
     win.setVerticalSyncEnabled(true);
 
     background.setSize(Vector2f(win.getSize()));
@@ -441,26 +440,28 @@ TEngineForm::TEngineForm() : win(VideoMode(winH, winW), "Russian checkers", Styl
 
 
     board.setField(control.field);
+    engineThread = new Thread(&TEngineForm::engineMove, this);
 
     if (!turn) {
         board.flip();
-
-        draw(0, 0);
-        if (mode) {
-            control.EngineMove(depth);
-        }
+        control.EngineMove(depth);
         board.setField(control.field);
     }
-    draw(0, 0);
+    
+}
+TEngineForm::~TEngineForm() {
+    delete engineThread;
 }
 void TEngineForm::poll() {
 
     Vector2f LPPos, LRPos;
+    Vector2f pos;
+    draw(0, 0);
 
     while (win.isOpen())
     {
         Event event;
-        Vector2f pos = Vector2f(Mouse::getPosition(win));
+        pos = Vector2f(Mouse::getPosition(win));
         while (win.pollEvent(event))
         {
             if (event.type == Event::Closed) {
@@ -478,7 +479,7 @@ void TEngineForm::poll() {
                 }
                 else if (analysicsB.isPressed(pos)) {
                     RenderWindow start(VideoMode(1400, 1000), "VOBLA", Style::Close);
-                    start.setFramerateLimit(60);
+                    start.setFramerateLimit(150);
                     start.setVerticalSyncEnabled(true);
 
                     TAnalysicsForm form1(start, control.gameMoves);
@@ -519,23 +520,14 @@ void TEngineForm::poll() {
                 LP = false;
                 LR = false;
 
-                mytype coord[4];
-                board.getCoord(LPPos, LRPos, coord);
-                MOVE_RESULT result = control.PlayerMove(coord[0], coord[1], coord[2], coord[3]);
-                if (result != INVALID_COORD) {
-                    board.setField(control.field);
-                    if (!mode) {
+                if (turn == control.turn) {
+                    mytype coord[4];
+                    board.getCoord(LPPos, LRPos, coord);
+                    MOVE_RESULT result = control.PlayerMove(coord[0], coord[1], coord[2], coord[3]);
+                    if (result != INVALID_COORD) {
+                        board.setField(control.field);
                         if (result == SUCCESS) {
-                            board.flip();
-                        }
-                    }
-                    else {
-                        draw(pos.x, pos.y);
-                        if (result == SUCCESS) {
-                            do {
-                                result = control.EngineMove(depth);
-                                board.setField(control.field);
-                            } while (result == ONE_MORE);
+                            engineThread->launch();
                         }
                     }
                 }
@@ -543,6 +535,15 @@ void TEngineForm::poll() {
         }
         draw(pos.x, pos.y);
     }
+    engineThread->terminate();
+}
+void TEngineForm::engineMove() {
+    MOVE_RESULT result;
+    do {
+        result = control.EngineMove(depth);
+        board.setField(control.field);
+        draw(0, 0);
+    } while (result == ONE_MORE);
 }
 
 void TPvpForm::addMove(mytype x1, mytype y1, mytype x2, mytype y2) {

@@ -12,7 +12,6 @@ extern Image icon;
 
 extern bool open;
 extern bool turn;
-extern bool mode;
 extern bool pvp;
 extern int depth;
 extern TcpSocket socket;
@@ -62,10 +61,14 @@ class TEngineForm {
     TLabel x, y, vector, assess, coord, type, turnl;
     GameController control;
 
+    Thread* engineThread;
+
     void setText(int index);
     void draw(int posx, int posy);
+    void engineMove();
 public:
     TEngineForm();
+    ~TEngineForm();
     void poll();
 };
 
