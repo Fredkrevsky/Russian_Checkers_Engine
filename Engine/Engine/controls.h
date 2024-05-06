@@ -19,6 +19,10 @@ public:
     void setPos(int x, int y);
     void draw(RenderWindow& win);
     void setVisible(bool toSet);
+    void setThickness(int thick);
+    void setFontSize(int fontSize);
+    void setColor(Color color);
+    void setOutlineColor(Color color);
 };
 
 class TObject

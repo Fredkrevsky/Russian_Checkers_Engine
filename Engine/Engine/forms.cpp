@@ -1,5 +1,4 @@
 #include "forms.h"
-#include <functional>
 
 void TAnalysicsForm::drawprogress() {
     win.clear();
@@ -28,30 +27,32 @@ TAnalysicsForm::TAnalysicsForm(RenderWindow& renwin, std::vector<MoveData>& data
     background.setSize(Vector2f(win.getSize()));
     background.setFillColor(Color::White);
 
-    exitB.setSize(200, 30);
-    exitB.setColor(Color::Green);
-    exitB.setText("Exit to main menu");
-    exitB.setPos(1625, 10);
-
     board.setField(control.gameMoves[0].field);
-    board.setPos(leftW, menuH);
+    board.setPos(100, 50);
 
     bar.setSize(46, 8 * tileSize - 4);
-    bar.setPos(leftW + 8 * tileSize + 2, menuH + 2);
+    bar.setPos(100 + 8 * tileSize + 2, 52);
     bar.setValue(0);
     bar.setThickness(2);
 
     pbar.setSize(600, 50);
-    pbar.setPos(300, 400);
+    pbar.setPos(200, 400);
     pbar.setThickness(2);
     pbar.setValue(0);
 
-    flipB.setSize(100, 30);
+    exitB.setSize(100, 50);
+    exitB.setThickness(2);
+    exitB.setColor(Color::Green);
+    exitB.setText("Exit");
+    exitB.setPos(1130, 800 - 2);
+
+    flipB.setSize(100, 50);
     flipB.setColor(Color::Green);
     flipB.setText("Flip");
-    flipB.setPos(50, 920);
+    flipB.setPos(1010, 800 - 2);
+    flipB.setThickness(2);
 
-    section.setPos(1100, 100);
+    section.setPos(1000, 50);
 
     bar.setValue(0.0);
     drawprogress();
@@ -352,29 +353,6 @@ void TStartForm::poll() {
     }
 }
 
-void TEngineForm::setText(int index) {
-    if (control.gameMoves.size() > index) {
-        MoveData curr;
-        curr = control.gameMoves[index];
-        x.setText("x = " + std::to_string(curr.x));
-        y.setText("y = " + std::to_string(curr.y));
-        vector.setText("vector = " + std::to_string(curr.vector));
-        if (curr.type) {
-            type.setText("type = BEAT");
-        }
-        else {
-            type.setText("type = MOVE");
-        }
-        assess.setText("assess = " + std::to_string(curr.assess));
-        coord.setText("coord = " + std::to_string(curr.coord[0]) + std::to_string(curr.coord[1]) + std::to_string(curr.coord[2]) + std::to_string(curr.coord[3]));
-        if (curr.turn) {
-            turnl.setText("White turn");
-        }
-        else {
-            turnl.setText("Black turn");
-        }
-    }
-}
 void TEngineForm::draw(int posx, int posy) {
     win.clear();
     win.draw(background);
@@ -382,19 +360,10 @@ void TEngineForm::draw(int posx, int posy) {
     exitB.draw(win);
     flipB.draw(win);
     analysicsB.draw(win);
-
-    setText(control.curr);
-    x.draw(win);
-    y.draw(win);
-    vector.draw(win);
-    assess.draw(win);
-    coord.draw(win);
-    type.draw(win);
-    turnl.draw(win);
-
+    resultLabel.draw(win);
     win.display();
 }
-TEngineForm::TEngineForm() : win(VideoMode(winH, winW), "Russian checkers", Style::Close) {
+TEngineForm::TEngineForm() : win(VideoMode(1200, 900), "Russian checkers", Style::Close) {
 
     win.setIcon(512, 512, icon.getPixelsPtr());
     win.setFramerateLimit(150);
@@ -403,49 +372,40 @@ TEngineForm::TEngineForm() : win(VideoMode(winH, winW), "Russian checkers", Styl
     background.setSize(Vector2f(win.getSize()));
     background.setFillColor(Color::White);
 
-    x.setPos(1100, 250);
-    x.setText("x = 0");
-    y.setPos(1100, 300);
-    y.setText("y = 0");
-    vector.setPos(1100, 350);
-    vector.setText("vector = 0");
-    assess.setPos(1100, 400);
-    assess.setText("assess = 0");
-    coord.setPos(1100, 450);
-    coord.setText("coord = 0");
-    type.setPos(1100, 500);
-    type.setText("type = 0");
-    turnl.setPos(1100, 550);
-    turnl.setText("turn = true");
-
-    exitB.setSize(230, 60);
+    exitB.setSize(100, 50);
     exitB.setThickness(2);
     exitB.setColor(Color::Green);
-    exitB.setText("Exit to main menu");
-    exitB.setPos(1100, 700);
+    exitB.setText("Exit");
+    exitB.setPos(1050, 800 - 2);
 
     board.setField(control.field);
-    board.setPos(leftW, menuH);
+    board.setPos(100, 50);
 
-    flipB.setSize(100, 30);
+    flipB.setSize(100, 50);
     flipB.setColor(Color::Green);
     flipB.setText("Flip");
-    flipB.setPos(50, 920);
+    flipB.setPos(930, 800 - 2);
+    flipB.setThickness(2);
 
     analysicsB.setSize(200, 60);
     analysicsB.setColor(Color::Green);
     analysicsB.setText("Analysics");
-    analysicsB.setPos(1100, 100);
+    analysicsB.setPos(950, 100);
     analysicsB.setThickness(2);
 
+    resultLabel.setPos(310, 350);
+    resultLabel.setFontSize(100);
+    resultLabel.setColor(Color::White);
+    resultLabel.setOutlineColor(Color::Black);
+    resultLabel.setThickness(7);
+    resultLabel.setVisible(false);
 
     board.setField(control.field);
     engineThread = new Thread(&TEngineForm::engineMove, this);
 
     if (!turn) {
         board.flip();
-        control.EngineMove(depth);
-        board.setField(control.field);
+        engineThread->launch();
     }
     
 }
@@ -478,7 +438,7 @@ void TEngineForm::poll() {
                     board.flip();
                 }
                 else if (analysicsB.isPressed(pos)) {
-                    RenderWindow start(VideoMode(1400, 1000), "VOBLA", Style::Close);
+                    RenderWindow start(VideoMode(1300, 900), "VOBLA", Style::Close);
                     start.setFramerateLimit(150);
                     start.setVerticalSyncEnabled(true);
 
@@ -503,17 +463,14 @@ void TEngineForm::poll() {
             }
             else if (Keyboard::isKeyPressed(Keyboard::Up)) {
                 control.getCurr();
-                setText(control.curr);
                 board.setField(control.field);
             }
             else if (Keyboard::isKeyPressed(Keyboard::Left)) {
                 control.getPrev();
-                setText(control.curr);
                 board.setField(control.field);
             }
             else if (Keyboard::isKeyPressed(Keyboard::Right)) {
                 control.getNext();
-                setText(control.curr);
                 board.setField(control.field);
             }
             if (LP && LR) {
@@ -528,6 +485,10 @@ void TEngineForm::poll() {
                         board.setField(control.field);
                         if (result == SUCCESS) {
                             engineThread->launch();
+                        }
+                        else if (result == WIN) {
+                            resultLabel.setText("You win");
+                            resultLabel.setVisible(true);
                         }
                     }
                 }
@@ -544,6 +505,10 @@ void TEngineForm::engineMove() {
         board.setField(control.field);
         draw(0, 0);
     } while (result == ONE_MORE);
+    if (result == WIN) {
+        resultLabel.setText("You lose");
+        resultLabel.setVisible(true);
+    }
 }
 
 void TPvpForm::addMove(mytype x1, mytype y1, mytype x2, mytype y2) {
@@ -660,7 +625,6 @@ void TPvpForm::receive() {
         }
     }
 }
-
 void TPvpForm::draw() {
     win.clear();
     win.draw(background);
@@ -680,7 +644,7 @@ void TPvpForm::loading() {
         draw();
     }
 }
-TPvpForm::TPvpForm() : win(VideoMode(winH, winW), "Russian checkers", Style::Close) {
+TPvpForm::TPvpForm() : win(VideoMode(1400, 1000), "Russian checkers", Style::Close) {
 
     win.setIcon(512, 512, icon.getPixelsPtr());
     win.setFramerateLimit(60);
@@ -696,7 +660,7 @@ TPvpForm::TPvpForm() : win(VideoMode(winH, winW), "Russian checkers", Style::Clo
     exitB.setPos(1100, 700);
 
     board.setField(control.field);
-    board.setPos(leftW, menuH);
+    board.setPos(100, 100);
 
     flipB.setSize(100, 30);
     flipB.setColor(Color::Green);

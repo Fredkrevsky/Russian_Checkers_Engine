@@ -36,7 +36,7 @@ int main()
             delete form;
         }
         else if (open) {
-            TPvpForm* form = new TPvpForm;
+            TPvpForm* form = new TPvpForm();
             form->poll();
             delete form;
         }

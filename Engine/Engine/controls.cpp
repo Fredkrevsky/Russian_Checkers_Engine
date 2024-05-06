@@ -245,6 +245,18 @@ void TLabel::draw(RenderWindow& win) {
 void TLabel::setVisible(bool toSet) {
     visible = toSet;
 }
+void TLabel::setThickness(int thick) {
+    text.setOutlineThickness(thick);
+}
+void TLabel::setFontSize(int fontSize) {
+    text.setCharacterSize(fontSize);
+}
+void TLabel::setColor(Color color) {
+    text.setFillColor(color);
+}
+void TLabel::setOutlineColor(Color color) {
+    text.setOutlineColor(color);
+}
 
 TObject::TObject() {
     x = 0;
@@ -784,7 +796,7 @@ MOVE_RESULT GameController::EngineMove(mytype depth) {
 
     MoveData temp = data;
     MOVE_RESULT result = engine.EngineMove(data, depth);
-    if (result == ONE_MORE || result == SUCCESS) {
+    if (result == ONE_MORE || result == SUCCESS || result == WIN) {
         BCopy(temp.field, data.field);
         temp.coord[0] = data.coord[0];
         temp.coord[1] = data.coord[1];

@@ -2,11 +2,6 @@
 #include <SFML/Network.hpp>
 #include "controls.h"
 
-const int menuH = 100;
-const int winH = 1400;
-const int winW = 1000;
-const int leftW = 200;
-
 extern Font font;
 extern Image icon;
 
@@ -42,7 +37,7 @@ class TStartForm {
     std::vector<TChoice> vChoice;
     std::vector<TInput> vInput;
     TButton startB, exitB;
-    int masDepth[4] = { 6, 8, 10, 12 };
+    int masDepth[4] = { 4, 8, 10, 12 };
 
     void draw();
 public:
@@ -57,13 +52,12 @@ class TEngineForm {
     RenderWindow win;
     RectangleShape background;
     TButton exitB, flipB, analysicsB;
+    TLabel resultLabel;
     TBoard board;
-    TLabel x, y, vector, assess, coord, type, turnl;
     GameController control;
 
     Thread* engineThread;
 
-    void setText(int index);
     void draw(int posx, int posy);
     void engineMove();
 public:

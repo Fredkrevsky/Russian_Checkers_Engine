@@ -355,6 +355,11 @@ MOVE_RESULT Engine::PlayerMove(MoveData& data) {
 			BCopy(data.field, field);
 		}
 
+		fill(field, MOVE, 0, 0, 0, !turn);
+		if (moves.size() == 0) {
+			return WIN;
+		}
+
 		return SUCCESS;
 	}
 	return INVALID_COORD;
@@ -418,6 +423,11 @@ MOVE_RESULT Engine::EngineMove(MoveData& data, mytype depth) {
 			data.x = 0;
 			data.y = 0;
 			BCopy(data.field, field);
+		}
+
+		fill(field, MOVE, 0, 0, 0, !turn);
+		if (moves.size() == 0) {
+			return WIN;
 		}
 
 		return SUCCESS;
