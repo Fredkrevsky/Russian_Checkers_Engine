@@ -70,7 +70,6 @@ class TPvpForm {
     bool turn = true;
     bool LP = false;
     bool LR = false;
-    bool opponentMoveReceived = false;
     bool connected = false;
 
     std::vector<int> vMoves;
@@ -82,17 +81,18 @@ class TPvpForm {
     TBoard board;
     TWait wait;
     GameController control;
+    TLabel lDraw, lLose, lWin;
 
     enum Type {
         INIT,
         MOVEREQ,
-        MOVEREPLY,
+        DRAWREQ,
     };
 
     void addMove(mytype x1, mytype y1, mytype x2, mytype y2);
     void sendMove(mytype x1, mytype y1, mytype x2, mytype y2);
     void receive();
-    void draw();
+    void draw(int posx, int posy);
     void loading();
 public:
     TPvpForm();

@@ -153,6 +153,7 @@ TStartForm::TStartForm() : win(VideoMode(760, 850), "Russian checkers", Style::C
 
     tempL.setText("Choose your color:");
     tempL.setPos(300, 220);
+    tempL.setVisible(false);
     vLabel.push_back(tempL);
 
     tempL.setText("White");
@@ -165,7 +166,6 @@ TStartForm::TStartForm() : win(VideoMode(760, 850), "Russian checkers", Style::C
 
     tempL.setText("Choose the difficulty:");
     tempL.setPos(289, 410);
-    tempL.setVisible(false);
     vLabel.push_back(tempL);
 
     tempL.setText("Easy");
@@ -204,6 +204,7 @@ TStartForm::TStartForm() : win(VideoMode(760, 850), "Russian checkers", Style::C
 
     turn = true;
 
+    tempC.setVisible(false);
     tempC.setPos(445, 285);
     tempC.setStatus(true);
     vChoice.push_back(tempC);
@@ -275,10 +276,10 @@ void TStartForm::poll() {
                     if (index == 0) {
                         vChoice[0].setStatus(true);
                         vChoice[1].setStatus(false);
-                        for (int i = 4; i < 8; ++i) {
+                        for (int i = 2; i < 8; ++i) {
                             vChoice[i].setVisible(false);
                         }
-                        for (int i = 6; i < 11; ++i) {
+                        for (int i = 3; i < 11; ++i) {
                             vLabel[i].setVisible(false);
                         }
                         vInput[0].setVisible(true);
@@ -290,10 +291,10 @@ void TStartForm::poll() {
                     else if (index == 1) {
                         vChoice[1].setStatus(true);
                         vChoice[0].setStatus(false);
-                        for (int i = 4; i < 8; ++i) {
+                        for (int i = 2; i < 8; ++i) {
                             vChoice[i].setVisible(true);
                         }
-                        for (int i = 6; i < 11; ++i) {
+                        for (int i = 3; i < 11; ++i) {
                             vLabel[i].setVisible(true);
                         }
                         vInput[0].setVisible(false);
@@ -503,7 +504,6 @@ void TEngineForm::engineMove() {
     do {
         result = control.EngineMove(depth);
         board.setField(control.field);
-        draw(0, 0);
     } while (result == ONE_MORE);
     if (result == WIN) {
         resultLabel.setText("You lose");
@@ -522,7 +522,7 @@ void TPvpForm::addMove(mytype x1, mytype y1, mytype x2, mytype y2) {
                 board.redSet(x1, y1, x2, y2);
             }
             vMoves.push_back(x1 * 1000 + y1 * 100 + x2 * 10 + y2);
-
+            
             if (control.turn == turn) {
                 int temp = vMoves[0];
                 sendMove(temp / 1000, (temp / 100) % 10, (temp / 10) % 10, temp % 10);
@@ -542,13 +542,12 @@ void TPvpForm::receive() {
     Packet packet;
     uint8_t type;
     int time;
-    if (socket.receive(packet) == Socket::Done) {
+    while (socket.receive(packet) == Socket::Done) {
+        Vector2f pos = Vector2f(Mouse::getPosition(win));
         packet >> type;
         switch (type) {
         case INIT:
             packet >> turn >> time;
-            connected = true;
-            opponentMoveReceived = true;
             if (!turn) {
                 board.flip();
             }
@@ -563,42 +562,37 @@ void TPvpForm::receive() {
             else {
                 clock1.pause();
             }
-            draw();
             break;
         case MOVEREQ:
             mytype x1, y1, x2, y2;
             uint8_t result;
-            int time1, time2;
-            packet >> result >> x1 >> y1 >> x2 >> y2 >> time1 >> time2;
-
-            switch (result) {
-            case MOVE_RESULT::DRAW:
-                vMoves.clear();
-                board.redReset();
-                break;
-            case MOVE_RESULT::INVALID_COORD:
-                vMoves.clear();
-                board.redReset();
-                break;
-            case MOVE_RESULT::LOSE:
-                vMoves.clear();
-                board.redReset();
-                break;
-            case MOVE_RESULT::ONE_MORE:
-                board.redReset(x1, y1, x2, y2);
-                control.PlayerMove(x1, y1, x2, y2);
-                break;
-            case MOVE_RESULT::SUCCESS:
-                board.redReset(x1, y1, x2, y2);
-                control.PlayerMove(x1, y1, x2, y2);
-                break;
-            case MOVE_RESULT::WIN:
-                vMoves.clear();
-                board.redReset();
-                control.PlayerMove(x1, y1, x2, y2);
-                break;
+            packet >> result >> x1 >> y1 >> x2 >> y2;
+            
+            if (result == DRAW) {
+                lDraw.setVisible(true);
             }
-            opponentMoveReceived = true;
+            else if (result == INVALID_COORD) {
+                vMoves.clear();
+                board.redReset();
+            }
+            else if (result == LOSE) {
+                control.PlayerMove(x1, y1, x2, y2);
+                lLose.setVisible(true);
+            }
+            else if (result == ONE_MORE || result == SUCCESS) {
+                board.redReset();
+                for (const int temp : vMoves) {
+                    board.redSet(temp / 1000, (temp / 100) % 10, (temp / 10) % 10, temp % 10);
+                }
+                control.PlayerMove(x1, y1, x2, y2);
+            }
+            else if (result == WIN) {
+                control.PlayerMove(x1, y1, x2, y2);
+                lWin.setVisible(true);
+            }
+
+            board.setField(control.field);
+
             if (control.turn == turn) {
                 clock1.release();
                 clock2.pause();
@@ -607,44 +601,42 @@ void TPvpForm::receive() {
                 clock2.release();
                 clock1.pause();
             }
-            if (turn) {
-                clock1.update(time1);
-                clock2.update(time2);
+            if (result == WIN || result == DRAW || result == LOSE) {
+                vMoves.clear();
+                board.redReset();
+                clock1.stop();
+                clock2.stop();
             }
-            else {
-                clock1.update(time2);
-                clock2.update(time1);
-            }
-            break;
         }
         if (control.turn == turn && vMoves.size()) {
             int temp = vMoves[0];
             sendMove(temp / 1000, (temp / 100) % 10, (temp / 10) % 10, temp % 10);
-            board.redReset(temp / 1000, (temp / 100) % 10, (temp / 10) % 10, temp % 10);
             vMoves.erase(vMoves.begin());
         }
     }
 }
-void TPvpForm::draw() {
+void TPvpForm::draw(int x, int y) {
     win.clear();
     win.draw(background);
-    board.draw(win, 0, 0);
+    board.draw(win, x, y);
     exitB.draw(win);
     flipB.draw(win);
     analysicsB.draw(win);
     clock1.draw(win);
     clock2.draw(win);
     wait.draw(win);
+    lLose.draw(win);
+    lWin.draw(win);
+    lDraw.draw(win);
     win.display();
 }
 void TPvpForm::loading() {
     while (!connected) {
         wait.setNext();
         sleep(milliseconds(300));
-        draw();
     }
 }
-TPvpForm::TPvpForm() : win(VideoMode(1400, 1000), "Russian checkers", Style::Close) {
+TPvpForm::TPvpForm() : win(VideoMode(1200, 900), "Russian checkers", Style::Close) {
 
     win.setIcon(512, 512, icon.getPixelsPtr());
     win.setFramerateLimit(60);
@@ -653,39 +645,66 @@ TPvpForm::TPvpForm() : win(VideoMode(1400, 1000), "Russian checkers", Style::Clo
     background.setSize(Vector2f(win.getSize()));
     background.setFillColor(Color::White);
 
-    exitB.setSize(230, 60);
+    exitB.setSize(150, 60);
     exitB.setThickness(2);
     exitB.setColor(Color::Green);
-    exitB.setText("Exit to main menu");
-    exitB.setPos(1100, 700);
+    exitB.setText("Exit");
+    exitB.setPos(900, 250);
+    exitB.setVisible(false);
 
     board.setField(control.field);
-    board.setPos(100, 100);
+    board.setPos(50, 50);
 
-    flipB.setSize(100, 30);
+    flipB.setSize(120, 50);
     flipB.setColor(Color::Green);
     flipB.setText("Flip");
-    flipB.setPos(50, 920);
+    flipB.setPos(900, 700);
+    flipB.setThickness(2);
 
-    analysicsB.setSize(200, 60);
+    analysicsB.setSize(150, 60);
     analysicsB.setColor(Color::Green);
     analysicsB.setText("Analysics");
-    analysicsB.setPos(1100, 100);
+    analysicsB.setPos(900, 180);
     analysicsB.setThickness(2);
+    analysicsB.setVisible(false);
 
 
     board.setField(control.field);
-    wait.setPos(400, 400);
+    wait.setPos(330, 320);
     wait.setRadius(100);
 
 
-    clock1.setPos(800, 910);
-    clock2.setPos(800, 40);
+    clock1.setPos(900, 800);
+    clock2.setPos(900, 50);
 
     clock1.update(600);
     clock2.update(600);
 
-    draw();
+    lDraw.setPos(390, 350);
+    lDraw.setFontSize(100);
+    lDraw.setColor(Color::White);
+    lDraw.setOutlineColor(Color::Black);
+    lDraw.setThickness(7);
+    lDraw.setVisible(false);
+    lDraw.setText("Draw");
+
+    lWin.setPos(320, 350);
+    lWin.setFontSize(100);
+    lWin.setColor(Color::White);
+    lWin.setOutlineColor(Color::Black);
+    lWin.setThickness(7);
+    lWin.setVisible(false);
+    lWin.setText("You win");
+
+    lLose.setPos(310, 350);
+    lLose.setFontSize(100);
+    lLose.setColor(Color::White);
+    lLose.setOutlineColor(Color::Black);
+    lLose.setThickness(7);
+    lLose.setVisible(false);
+    lLose.setText("You lose");
+
+    draw(0, 0);
 }
 void TPvpForm::poll() {
 
@@ -699,13 +718,8 @@ void TPvpForm::poll() {
 
     while (win.isOpen())
     {
+        Vector2f pos = Vector2f(Mouse::getPosition(win));
         Event event;
-        if (opponentMoveReceived) {
-            board.setField(control.field);
-            draw();
-            opponentMoveReceived = false;
-            receiveTurn.launch();
-        }
 
         while (win.pollEvent(event))
         {
@@ -714,7 +728,7 @@ void TPvpForm::poll() {
                 open = false;
             }
             else if (event.type == Event::MouseButtonPressed) {
-                Vector2f pos = Vector2f(Mouse::getPosition(win));
+                board.capture(pos.x, pos.y);
                 if (exitB.isPressed(pos)) {
                     win.close();
                     open = true;
@@ -738,6 +752,7 @@ void TPvpForm::poll() {
                 }
             }
             else if (event.type == Event::MouseButtonReleased) {
+                board.uncatch();
                 if (LP) {
                     Vector2f pos = Vector2f(Mouse::getPosition(win));
                     if (event.mouseButton.button == Mouse::Left) {
@@ -769,13 +784,13 @@ void TPvpForm::poll() {
                 addMove(coord[0], coord[1], coord[2], coord[3]);
             }
         }
-        draw();
+        draw(pos.x, pos.y);
     }
-    connected = true;
+
     clock1.stop();
     clock2.stop();
-    receiveTurn.wait();
-    loadingThread.wait();
+    receiveTurn.terminate();
+    loadingThread.terminate();
     socket.disconnect();
     listener.close();
 }

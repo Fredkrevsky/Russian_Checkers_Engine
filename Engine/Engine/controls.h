@@ -182,6 +182,7 @@ protected:
     Engine engine;
     MOVE_TYPE type;
     mytype x, y, vector;
+    bool locked = false;
 
     void getData(MoveData& source);
     void setData(MoveData& dest);
@@ -194,7 +195,7 @@ public:
 
     std::vector<MoveData> gameMoves;
     GameController();
-    virtual MOVE_RESULT PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2);
+    MOVE_RESULT PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2);
     MOVE_RESULT EngineMove(mytype depth);
     void getPrev();
     void getNext();

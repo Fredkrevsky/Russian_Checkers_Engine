@@ -25,6 +25,7 @@ int main()
     }
 
     while (open) {
+        pvp = true;
         if (open) {
             TStartForm* form = new TStartForm();
             form->poll();
