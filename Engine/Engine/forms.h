@@ -77,7 +77,7 @@ class TPvpForm {
     TClock clock1, clock2;
     RectangleShape background;
     RenderWindow win;
-    TButton exitB, flipB, analysicsB;
+    TButton exitB, flipB, analysicsB, drawB, resignB;
     TBoard board;
     TWait wait;
     GameController control;
@@ -87,9 +87,12 @@ class TPvpForm {
         INIT,
         MOVEREQ,
         DRAWREQ,
+        RESIGNREQ
     };
 
-    void addMove(mytype x1, mytype y1, mytype x2, mytype y2);
+    void resign();
+    void offerdraw();
+    //void addMove(mytype x1, mytype y1, mytype x2, mytype y2);
     void sendMove(mytype x1, mytype y1, mytype x2, mytype y2);
     void receive();
     void draw(int posx, int posy);

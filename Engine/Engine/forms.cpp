@@ -511,6 +511,7 @@ void TEngineForm::engineMove() {
     }
 }
 
+/*
 void TPvpForm::addMove(mytype x1, mytype y1, mytype x2, mytype y2) {
     if (CheckCoord(x1, y1) && CheckCoord(x2, y2)) {
         if (x1 == x2 && y1 == y2) {
@@ -530,13 +531,23 @@ void TPvpForm::addMove(mytype x1, mytype y1, mytype x2, mytype y2) {
             }
         }
     }
-}
+}*/
 void TPvpForm::sendMove(mytype x1, mytype y1, mytype x2, mytype y2) {
     if (CheckCoord(x1, y1) && CheckCoord(x2, y2)) {
         Packet packet;
         packet << (uint8_t)MOVEREQ << x1 << y1 << x2 << y2;
         socket.send(packet);
     }
+}
+void TPvpForm::resign() {
+    Packet packet;
+    packet << (uint8_t)RESIGNREQ;
+    socket.send(packet);
+}
+void TPvpForm::offerdraw() {
+    Packet packet;
+    packet << (uint8_t)DRAWREQ;
+    socket.send(packet);
 }
 void TPvpForm::receive() {
     Packet packet;
@@ -581,9 +592,6 @@ void TPvpForm::receive() {
             }
             else if (result == ONE_MORE || result == SUCCESS) {
                 board.redReset();
-                for (const int temp : vMoves) {
-                    board.redSet(temp / 1000, (temp / 100) % 10, (temp / 10) % 10, temp % 10);
-                }
                 control.PlayerMove(x1, y1, x2, y2);
             }
             else if (result == WIN) {
@@ -601,12 +609,25 @@ void TPvpForm::receive() {
                 clock2.release();
                 clock1.pause();
             }
-            if (result == WIN || result == DRAW || result == LOSE) {
+            if (result == WIN || result == LOSE || result == DRAW) {
                 vMoves.clear();
                 board.redReset();
                 clock1.stop();
                 clock2.stop();
+                analysicsB.setVisible(true);
+                exitB.setVisible(true);
             }
+            break;
+        case DRAWREQ:
+            drawB.setColor(Color::Red);
+            drawB.setText("Accept");
+        }
+        if (type != DRAWREQ) {
+            drawB.setColor(Color::Green);
+            drawB.setText("Offer a draw");
+        }
+        for (const int temp : vMoves) {
+            board.redSet(temp / 1000, (temp / 100) % 10, (temp / 10) % 10, temp % 10);
         }
         if (control.turn == turn && vMoves.size()) {
             int temp = vMoves[0];
@@ -622,6 +643,8 @@ void TPvpForm::draw(int x, int y) {
     exitB.draw(win);
     flipB.draw(win);
     analysicsB.draw(win);
+    resignB.draw(win);
+    drawB.draw(win);
     clock1.draw(win);
     clock2.draw(win);
     wait.draw(win);
@@ -658,7 +681,7 @@ TPvpForm::TPvpForm() : win(VideoMode(1200, 900), "Russian checkers", Style::Clos
     flipB.setSize(120, 50);
     flipB.setColor(Color::Green);
     flipB.setText("Flip");
-    flipB.setPos(900, 700);
+    flipB.setPos(1030, 700);
     flipB.setThickness(2);
 
     analysicsB.setSize(150, 60);
@@ -704,6 +727,18 @@ TPvpForm::TPvpForm() : win(VideoMode(1200, 900), "Russian checkers", Style::Clos
     lLose.setVisible(false);
     lLose.setText("You lose");
 
+    drawB.setPos(900, 640);
+    drawB.setSize(180, 50);
+    drawB.setText("Offer a draw");
+    drawB.setThickness(2);
+    drawB.setColor(Color::Green);
+
+    resignB.setPos(900, 700);
+    resignB.setSize(120, 50);
+    resignB.setText("Resign");
+    resignB.setThickness(2);
+    resignB.setColor(Color::Green);
+
     draw(0, 0);
 }
 void TPvpForm::poll() {
@@ -737,12 +772,18 @@ void TPvpForm::poll() {
                     board.flip();
                 }
                 else if (analysicsB.isPressed(pos)) {
-                    RenderWindow start(VideoMode(1400, 1000), "VOBLA", Style::Close);
+                    RenderWindow start(VideoMode(1300, 900), "VOBLA", Style::Close);
                     start.setFramerateLimit(60);
                     start.setVerticalSyncEnabled(true);
 
                     TAnalysicsForm form1(start, control.gameMoves);
                     form1.poll();
+                }
+                else if (resignB.isPressed(pos)) {
+                    resign();
+                }
+                else if (drawB.isPressed(pos)) {
+                    offerdraw();
                 }
                 else {
                     if (event.mouseButton.button == Mouse::Left) {
@@ -775,13 +816,13 @@ void TPvpForm::poll() {
                 control.getNext();
                 board.setField(control.field);
             }
-            if (LP && LR) {
+            if (LP && LR && control.curr == control.head) {
                 LP = false;
                 LR = false;
 
                 mytype coord[4];
                 board.getCoord(LPPos, LRPos, coord);
-                addMove(coord[0], coord[1], coord[2], coord[3]);
+                sendMove(coord[0], coord[1], coord[2], coord[3]);
             }
         }
         draw(pos.x, pos.y);
