@@ -21,3 +21,5 @@ Engine/UpgradeLog.htm
 Image/
 Engine/server/.vs
 .gitignore
+server/Lab2 server UDP/x64/
+server/x64/

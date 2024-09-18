@@ -1,12 +1,9 @@
 #include "Engine.h"
 
-mytype Engine::find(mytype x1, mytype y1, mytype x2, mytype y2) {
-	for (int i = 0; i < moves.size(); i++) {
-		if (moves[i].coord[0] == x1 && moves[i].coord[1] == y1 && moves[i].coord[2] == x2 && moves[i].coord[3] == y2) {
-			return i;
-		}
-	}
-	return -1;
+int find(mytype x1, mytype y1, mytype x2, mytype y2) {
+    Move move{x1, y1, x2, y2};
+    auto it = std::find(moves.begin(), moves.end(), move);
+    return it == moves.end() ? -1 : it - moves.begin();
 }
 float Engine::mmAB(TField& field, int depth, float alpha, float beta, bool turn) {
 
