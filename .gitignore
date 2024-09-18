@@ -19,3 +19,5 @@ Engine/Engine/sfml-window-2.dll
 Engine/Engine/sfml-window-d-2.dll
 Engine/UpgradeLog.htm
 Image/
+Engine/server/.vs
+.gitignore
