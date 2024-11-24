@@ -9,8 +9,8 @@ bool pvp = true;
 
 int depth = 12;
 
-TcpSocket socket;
-TcpListener listener;
+//TcpSocket socket;
+//TcpListener listener;
 Font font;
 Image icon;
 

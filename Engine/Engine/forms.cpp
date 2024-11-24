@@ -1,4 +1,6 @@
 #include "forms.h"
+#include <mutex>
+#include <chrono>
 
 void TAnalysicsForm::drawprogress() {
     win.clear();
@@ -334,7 +336,7 @@ void TStartForm::poll() {
                     vInput[0].onRelease();
                 }
                 else if (startB.isPressed(pos)) {
-                    if (!pvp || pvp && vInput[1].getText().size() && socket.connect(vInput[0].getText(), stoi(vInput[1].getText())) == Socket::Done) {
+                    if (!pvp/* || pvp && vInput[1].getText().size() && socket.connect(vInput[0].getText(), stoi(vInput[1].getText())) == Socket::Done*/) {
                         win.close();
                         open = true;
                     }
@@ -362,6 +364,7 @@ void TEngineForm::draw(int posx, int posy) {
     flipB.draw(win);
     analysicsB.draw(win);
     resultLabel.draw(win);
+    timeLabel.draw(win);
     win.display();
 }
 TEngineForm::TEngineForm() : win(VideoMode(1200, 900), "Russian checkers", Style::Close) {
@@ -404,6 +407,9 @@ TEngineForm::TEngineForm() : win(VideoMode(1200, 900), "Russian checkers", Style
     board.setField(control.field);
     engineThread = new Thread(&TEngineForm::engineMove, this);
 
+    timeLabel.setPos(950, 500);
+    timeLabel.setText("Time: ");
+
     if (!turn) {
         board.flip();
         engineThread->launch();
@@ -427,12 +433,14 @@ void TEngineForm::poll() {
         {
             if (event.type == Event::Closed) {
                 win.close();
+                engineThread->wait();
                 open = false;
             }
             else if (event.type == Event::MouseButtonPressed) {
                 board.capture(pos.x, pos.y);
                 if (exitB.isPressed(pos)) {
                     win.close();
+                    engineThread->wait();
                     open = true;
                 }
                 else if (flipB.isPressed(pos)) {
@@ -500,6 +508,8 @@ void TEngineForm::poll() {
     engineThread->terminate();
 }
 void TEngineForm::engineMove() {
+    auto start = std::chrono::high_resolution_clock::now();
+
     MOVE_RESULT result;
     do {
         result = control.EngineMove(depth);
@@ -509,51 +519,37 @@ void TEngineForm::engineMove() {
         resultLabel.setText("You lose");
         resultLabel.setVisible(true);
     }
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    std::string s = "Time: " + std::to_string(duration) + " ms\n";
+    {
+        std::lock_guard<std::mutex> lock(labelMutex);
+        timeLabel.setText(s);
+    }
 }
 
-/*
-void TPvpForm::addMove(mytype x1, mytype y1, mytype x2, mytype y2) {
-    if (CheckCoord(x1, y1) && CheckCoord(x2, y2)) {
-        if (x1 == x2 && y1 == y2) {
-            board.redReset();
-            vMoves.clear();
-        }
-        else {
-            if (vMoves.size() || turn != control.turn) {
-                board.redSet(x1, y1, x2, y2);
-            }
-            vMoves.push_back(x1 * 1000 + y1 * 100 + x2 * 10 + y2);
-            
-            if (control.turn == turn) {
-                int temp = vMoves[0];
-                sendMove(temp / 1000, (temp / 100) % 10, (temp / 10) % 10, temp % 10);
-                vMoves.erase(vMoves.begin());
-            }
-        }
-    }
-}*/
 void TPvpForm::sendMove(mytype x1, mytype y1, mytype x2, mytype y2) {
     if (CheckCoord(x1, y1) && CheckCoord(x2, y2)) {
         Packet packet;
         packet << (uint8_t)MOVEREQ << x1 << y1 << x2 << y2;
-        socket.send(packet);
+        /*socket.send(packet);*/
     }
 }
 void TPvpForm::resign() {
     Packet packet;
     packet << (uint8_t)RESIGNREQ;
-    socket.send(packet);
+    /*socket.send(packet);*/
 }
 void TPvpForm::offerdraw() {
     Packet packet;
     packet << (uint8_t)DRAWREQ;
-    socket.send(packet);
+    /*socket.send(packet);*/
 }
 void TPvpForm::receive() {
     Packet packet;
     uint8_t type;
     int time;
-    while (socket.receive(packet) == Socket::Done) {
+    while (/*socket.receive(packet) == Socket::Done*/true) {
         Vector2f pos = Vector2f(Mouse::getPosition(win));
         packet >> type;
         switch (type) {
@@ -832,6 +828,6 @@ void TPvpForm::poll() {
     clock2.stop();
     receiveTurn.terminate();
     loadingThread.terminate();
-    socket.disconnect();
-    listener.close();
+    /*socket.disconnect();
+    listener.close();*/
 }

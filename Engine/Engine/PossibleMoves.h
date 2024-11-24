@@ -11,7 +11,6 @@ typedef enum MOVE_TYPE {
 extern "C" mytype GetMode(mytype, mytype, mytype, mytype, mytype);
 extern "C" bool CheckCoord(mytype, mytype);
 extern "C" void BInit(TField&);
-extern "C" void BCopy(TField&, TField&);
 extern "C" void Move(TField&, mytype, mytype, mytype, mytype);
 extern "C" void Beat(TField&, mytype, mytype, mytype, mytype);
 extern "C" bool SMCheck(TField&, mytype, mytype, mytype, mytype);

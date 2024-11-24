@@ -1,6 +1,8 @@
 #pragma once
 #include <SFML/Network.hpp>
 #include "controls.h"
+#include <array>
+#include <mutex>
 
 extern Font font;
 extern Image icon;
@@ -9,10 +11,11 @@ extern bool open;
 extern bool turn;
 extern bool pvp;
 extern int depth;
-extern TcpSocket socket;
-extern TcpListener listener;
+//extern TcpSocket socket;
+//extern TcpListener listener;
 
 class TAnalysicsForm {
+
     RectangleShape background;
     RenderWindow& win;
     TButton exitB;
@@ -31,13 +34,14 @@ public:
 };
 
 class TStartForm {
+
     RenderWindow win;
     RectangleShape background;
     std::vector<TLabel> vLabel;
     std::vector<TChoice> vChoice;
     std::vector<TInput> vInput;
     TButton startB, exitB;
-    int masDepth[4] = { 4, 8, 10, 12 };
+    const std::array<int, 4> masDepth =  { 4, 8, 10, 12 };
 
     void draw();
 public:
@@ -52,11 +56,11 @@ class TEngineForm {
     RenderWindow win;
     RectangleShape background;
     TButton exitB, flipB, analysicsB;
-    TLabel resultLabel;
+    TLabel resultLabel, timeLabel;
     TBoard board;
     GameController control;
-
     Thread* engineThread;
+    std::mutex labelMutex;
 
     void draw(int posx, int posy);
     void engineMove();
@@ -92,7 +96,6 @@ class TPvpForm {
 
     void resign();
     void offerdraw();
-    //void addMove(mytype x1, mytype y1, mytype x2, mytype y2);
     void sendMove(mytype x1, mytype y1, mytype x2, mytype y2);
     void receive();
     void draw(int posx, int posy);

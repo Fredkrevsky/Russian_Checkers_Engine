@@ -1,6 +1,7 @@
 #pragma once+
 #include <SFML/Graphics.hpp>
 #include "Engine.h"
+#include <array>
 
 using namespace sf;
 #define schar signed char
@@ -154,7 +155,7 @@ public:
 class TBoard : TObject {
     bool flipped;
     TField field = {};
-    bool red[8][8] = {};
+    std::array<std::array<bool, 8>, 8> red = {};
     mytype x1, y1, x2, y2;
     MOVE_STATUS comment;
 
