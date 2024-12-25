@@ -1,24 +1,8 @@
 Engine/x64/
 Engine/UpgradeLog
-Engine/SFML-VISUAL/
 Engine/.vs/
 Engine/Engine/x64/
-Engine/Engine/Engine.vcxproj
-Engine/Engine/Engine.vcxproj.filters
-Engine/Engine/Engine.vcxproj.user
-Engine/Engine/openal32.dll
-Engine/Engine/sfml-audio-2.dll
-Engine/Engine/sfml-audio-d-2.dll
-Engine/Engine/sfml-graphics-2.dll
-Engine/Engine/sfml-graphics-d-2.dll
-Engine/Engine/sfml-network-2.dll
-Engine/Engine/sfml-network-d-2.dll
-Engine/Engine/sfml-system-2.dll
-Engine/Engine/sfml-system-d-2.dll
-Engine/Engine/sfml-window-2.dll
-Engine/Engine/sfml-window-d-2.dll
 Engine/UpgradeLog.htm
-Image/
 Engine/server/.vs
 .gitignore
 server/Lab2 server UDP/x64/
