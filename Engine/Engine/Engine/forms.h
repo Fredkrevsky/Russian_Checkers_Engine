@@ -59,7 +59,7 @@ class TEngineForm {
     TLabel resultLabel, timeLabel;
     TBoard board;
     GameController control;
-    Thread* engineThread;
+    std::thread* engineThread;
     std::mutex labelMutex;
 
     void draw(int posx, int posy);

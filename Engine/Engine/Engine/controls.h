@@ -1,4 +1,4 @@
-#pragma once+
+#pragma once
 #include <SFML/Graphics.hpp>
 #include "Engine.h"
 #include <array>
@@ -136,7 +136,7 @@ public:
 class TClock : public TObject {
     volatile bool gameIsGoing;
     volatile bool yourTurn;
-    sf::Thread* thread;
+    std::thread* thread;
     int value;
     Text text;
     std::string getStringTime(int seconds);
@@ -251,7 +251,7 @@ public:
 
 class TWait {
 
-    const float s3 = 1.73205;
+    const float s3{ 1.73205f };
 
     CircleShape mas[6];
     int current = 0;

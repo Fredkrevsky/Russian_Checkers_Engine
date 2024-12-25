@@ -11,8 +11,8 @@ int depth = 12;
 
 //TcpSocket socket;
 //TcpListener listener;
-Font font;
-Image icon;
+sf::Font font;
+sf::Image icon;
 
 int main()
 {
@@ -20,7 +20,7 @@ int main()
         return 1;
     }
 
-    if (!font.loadFromFile("Fonts/arialmt.ttf")) {
+    if (!font.openFromFile("Fonts/arialmt.ttf")) {
         return 2;
     }
 

@@ -115,12 +115,12 @@ void TBoard::draw(RenderWindow& win, int posx, int posy) {
                 }
             }
 
-            cell.setPosition(x + i * tileSize, y + (7 - j) * tileSize);
+            cell.setPosition(Vector2f(x + i * tileSize, y + (7 - j) * tileSize));
             win.draw(cell);
 
             if (field[i][j] != 0) {
 
-                checker.setPosition(x + i * tileSize + 10, y + (7 - j) * tileSize + 10);
+                checker.setPosition(Vector2f(x + i * tileSize + 10, y + (7 - j) * tileSize + 10));
 
                 if ((field[i][j] == 1) || (field[i][j] == 3)) {
                     checker.setFillColor(Color(230, 230, 230));
@@ -131,12 +131,12 @@ void TBoard::draw(RenderWindow& win, int posx, int posy) {
                 if (!isCaptured || i != cx || j != cy) {
                     win.draw(checker);
                     if (field[i][j] == 3) {
-                        in.setPosition(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5);
+                        in.setPosition(Vector2f(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5));
                         in.setFillColor(Color(30, 30, 30));
                         win.draw(in);
                     }
                     else if (field[i][j] == 4) {
-                        in.setPosition(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5);
+                        in.setPosition(Vector2f(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5));
                         in.setFillColor(Color(230, 230, 230));
                         win.draw(in);
                     }
@@ -145,13 +145,13 @@ void TBoard::draw(RenderWindow& win, int posx, int posy) {
         }
     }
     if (x1 || y1 || x2 || y2) {
-        Sprite sprite;
+        Sprite sprite(best);
         switch (comment) {
-            case BEST: sprite.setTexture(best); break;
-            case BLUNDER: sprite.setTexture(blunder); break;
-            case FORCED: sprite.setTexture(forced); break;
-            case INACCURACY: sprite.setTexture(inac); break;
-            case GOOD: sprite.setTexture(good); break;
+            //case BEST: sprite.setTexture(best); break;
+        case BLUNDER: sprite.setTexture(blunder); break;
+        case FORCED: sprite.setTexture(forced); break;
+        case INACCURACY: sprite.setTexture(inac); break;
+        case GOOD: sprite.setTexture(good); break;
         }
         int tempx, tempy;
         if (!flipped) {
@@ -162,10 +162,10 @@ void TBoard::draw(RenderWindow& win, int posx, int posy) {
             tempx = x + (8 - x2) * tileSize - 25;
             tempy = y + y2 * tileSize - 25;
         }
-        sprite.setPosition(tempx, tempy);
+        sprite.setPosition(Vector2f(tempx, tempy));
 
-        float scaleFactor = 50.0f / sprite.getLocalBounds().width;
-        sprite.setScale(scaleFactor, scaleFactor);
+        float scaleFactor = 50.0f / sprite.getLocalBounds().size.y;
+        sprite.setScale(Vector2f(scaleFactor, scaleFactor));
         win.draw(sprite);
     }
     if (isCaptured) {
@@ -178,19 +178,19 @@ void TBoard::draw(RenderWindow& win, int posx, int posy) {
         else if ((field[cx][cy] == 2) || (field[cx][cy] == 4)) {
             checker.setFillColor(Color(30, 30, 30));
         }
-        checker.setPosition(posx - tileSize / 2 + 10, posy - tileSize / 2 + 10);
+        checker.setPosition(Vector2f(posx - tileSize / 2 + 10, posy - tileSize / 2 + 10));
 
         if (field[cx][cy]) {
             win.draw(checker);
         }
 
         if (field[cx][cy] == 3) {
-            in.setPosition(posx - tileSize / 4 + 5, posy - tileSize / 4 + 5);
+            in.setPosition(Vector2f(posx - tileSize / 4 + 5, posy - tileSize / 4 + 5));
             in.setFillColor(Color(30, 30, 30));
             win.draw(in);
         }
         else if (field[cx][cy] == 4) {
-            in.setPosition(posx - tileSize / 4 + 5, posy - tileSize / 4 + 5);
+            in.setPosition(Vector2f(posx - tileSize / 4 + 5, posy - tileSize / 4 + 5));
             in.setFillColor(Color(230, 230, 230));
             win.draw(in);
         }
@@ -217,19 +217,18 @@ void TBoard::setComment(MOVE_STATUS tcomment, mytype tx1, mytype ty1, mytype tx2
     comment = tcomment;
 }
 
-TLabel::TLabel() {
+TLabel::TLabel() : text(font) {
     visible = true;
     text.setString("");
-    text.setFont(font);
     text.setCharacterSize(fontSize);
     text.setFillColor(Color::Black);
-    text.setPosition(0, 0);
+    text.setPosition(Vector2f( 0, 0 ));
 }
 void TLabel::setText(std::string txt) {
     text.setString(txt);
 }
 void TLabel::setPos(int x, int y) {
-    text.setPosition(x, y);
+    text.setPosition(Vector2f( x, y ));
 }
 void TLabel::draw(RenderWindow& win) {
     if (visible) {
@@ -258,7 +257,7 @@ TObject::TObject() {
     width = 0;
     height = 0;
     background.setFillColor(Color(230, 230, 230));
-    background.setPosition(0, 0);
+    background.setPosition(Vector2f( 0, 0 ));
     background.setSize(Vector2f(0, 0));
     background.setOutlineColor(Color(30, 30, 30));
     visible = true;
@@ -295,12 +294,11 @@ bool TClickable::isPressed(Vector2f& pos) {
 TClickable::TClickable() : TObject() {}
 
 void TButton::normText() {
-    text.setPosition(x + (width - len * fontSize / 2) / 2 + 4, y + (height - fontSize) / 2 - 4);
+    text.setPosition(Vector2f( x + (width - len * fontSize / 2) / 2 + 4, y + (height - fontSize) / 2 - 4 ));
 }
-TButton::TButton() : TClickable() {
+TButton::TButton() : TClickable(), text(font) {
     len = 0;
-    text.setPosition(0, 0);
-    text.setFont(font);
+    text.setPosition(Vector2f( 0, 0 ));
     text.setCharacterSize(fontSize);
     text.setFillColor(Color::Black);
 }
@@ -339,11 +337,11 @@ TChoice::TChoice() : TClickable() {
 }
 void TChoice::setPos(int tx, int ty) {
     TObject::setPos(tx, ty);
-    in.setPosition(tx + width / 4, ty + height / 4);
+    in.setPosition(Vector2f( tx + width / 4, ty + height / 4 ));
 }
 void TChoice::setSize(int twidth, int theight) {
     TObject::setSize(twidth, theight);
-    in.setPosition(x + twidth / 4, y + theight / 4);
+    in.setPosition(Vector2f( x + twidth / 4, y + theight / 4 ));
     in.setSize(Vector2f(twidth / 2, theight / 2));
 }
 void TChoice::onPress() {
@@ -365,21 +363,20 @@ bool TChoice::getStatus() {
     return isSelected;
 }
 
-TBar::TBar() : TObject() {
+TBar::TBar() : TObject(), text(font) {
     value = 0.5;
     posX = width * value;
 
-    first.setPosition(x, y);
+    first.setPosition(Vector2f( x, y ));
     first.setSize(Vector2f(posX, height));
     first.setFillColor(Color::Green);
 
-    second.setPosition(x + posX, y);
-    second.setSize(Vector2f(height - posX, height));
+    second.setPosition(Vector2f( x + posX, y ));
+    second.setSize(Vector2f( height - posX, height ));
     second.setFillColor(Color::White);
 
-    text.setFont(font);
     text.setFillColor(Color::Black);
-    text.setPosition(0, 0);
+    text.setPosition(Vector2f( 0, 0 ));
     text.setCharacterSize(fontSize);
     text.setString("");
 
@@ -403,7 +400,7 @@ inline void TProgressBar::setWidth() {
     posX = width * value;
 }
 inline void TProgressBar::setTextPosition() {
-    text.setPosition(x + 4, y + (height - fontSize) / 2 - 3);
+    text.setPosition(Vector2f( x + 4, y + (height - fontSize) / 2 - 3 ));
 }
 inline void TProgressBar::setString() {
     int toSet = std::round(abs(value) * 100);
@@ -415,8 +412,8 @@ TProgressBar::TProgressBar() : TBar() { }
 void TProgressBar::setPos(int tx, int ty) {
     TObject::setPos(tx, ty);
 
-    first.setPosition(tx, ty);
-    second.setPosition(tx + posX, ty);
+    first.setPosition(Vector2f( tx, ty ));
+    second.setPosition(Vector2f( tx + posX, ty ));
 
     setTextPosition();
 }
@@ -426,7 +423,7 @@ void TProgressBar::setSize(int twidth, int theight) {
     first.setSize(Vector2f(twidth, theight));
 
     second.setSize(Vector2f(width - posX, height));
-    second.setPosition(x + posX, y);
+    second.setPosition(Vector2f( x + posX, y ));
 
     setTextPosition();
 }
@@ -436,7 +433,7 @@ void TProgressBar::setValue(float toSet) {
     setString();
     setTextPosition();
     first.setSize(Vector2f(posX, height));
-    second.setPosition(x + posX, y);
+    second.setPosition(Vector2f( x + posX, y ));
     second.setSize(Vector2f(width - posX, height));
 }
 
@@ -455,7 +452,7 @@ inline void TAssessBar::setHeight() {
     }
     posX = height - posX;
     first.setSize(Vector2f(width, posX));
-    second.setPosition(x, y + posX);
+    second.setPosition(Vector2f( x, y + posX ));
     second.setSize(Vector2f(width, height - posX));
 }
 inline void TAssessBar::setTextColor() {
@@ -468,10 +465,10 @@ inline void TAssessBar::setTextColor() {
 }
 inline void TAssessBar::setTextPosition() {
     if (value < 0) {
-        text.setPosition(x + 8, y + 4);
+        text.setPosition(Vector2f( x + 8, y + 4 ));
     }
     else {
-        text.setPosition(x + 8, y + height - fontSize - 4);
+        text.setPosition(Vector2f( x + 8, y + height - fontSize - 4 ));
     }
 }
 inline void TAssessBar::setString() {
@@ -496,15 +493,15 @@ TAssessBar::TAssessBar() : TBar() {
 }
 void TAssessBar::setPos(int tx, int ty) {
     TObject::setPos(tx, ty);
-    first.setPosition(tx, ty);
-    second.setPosition(tx, ty + posX);
+    first.setPosition(Vector2f( tx, ty ));
+    second.setPosition(Vector2f( tx, ty + posX ));
     setTextPosition();
 }
 void TAssessBar::setSize(int twidth, int theight) {
     TObject::setSize(twidth, theight);
     first.setSize(Vector2f(twidth, theight));
     second.setSize(Vector2f(width, height - posX));
-    second.setPosition(x, y + posX);
+    second.setPosition(Vector2f( x, y + posX ));
     setTextPosition();
 }
 void TAssessBar::setValue(float toSet) {
@@ -532,110 +529,107 @@ void TAssessBar::flip() {
 
 TCommentSection::TCommentSection() : TObject() {
     setThickness(2);
-    for (int i = 0; i < 10; ++i) {
-        values.push_back(0);
-    }
+    values.resize(10, 0);
 
-    Text text;
-    text.setFont(font);
+    Text text(font);
     text.setCharacterSize(fontSize);
     text.setFillColor(Color::Black);
     text.setString("Results:");
-    text.setPosition(x + 50, y);
+    text.setPosition(Vector2f( x + 50, y ));
     vText.push_back(text);
 
     text.setString("0");
-    text.setPosition(x, y + 50);
+    text.setPosition(Vector2f( x, y + 50 ));
     vText.push_back(text);
     text.setString("Best");
-    text.setPosition(x + 30, y + 50);
+    text.setPosition(Vector2f( x + 30, y + 50 ));
     vText.push_back(text);
     text.setString("0");
-    text.setPosition(x + 200, y + 50);
+    text.setPosition(Vector2f( x + 200, y + 50 ));
     vText.push_back(text);
 
     text.setString("0");
-    text.setPosition(x, y + 100);
+    text.setPosition(Vector2f( x, y + 100 ));
     vText.push_back(text);
     text.setString("Good");
-    text.setPosition(x + 30, y + 100);
+    text.setPosition(Vector2f( x + 30, y + 100 ));
     vText.push_back(text);
     text.setString("0");
-    text.setPosition(x + 200, y + 100);
+    text.setPosition(Vector2f( x + 200, y + 100 ));
     vText.push_back(text);
 
     text.setString("0");
-    text.setPosition(x, y + 150);
+    text.setPosition(Vector2f( x, y + 150 ));
     vText.push_back(text);
     text.setString("Forced");
-    text.setPosition(x + 30, y + 150);
+    text.setPosition(Vector2f( x + 30, y + 150 ));
     vText.push_back(text);
     text.setString("0");
-    text.setPosition(x + 200, y + 150);
+    text.setPosition(Vector2f( x + 200, y + 150 ));
     vText.push_back(text);
 
     text.setString("0");
-    text.setPosition(x, y + 200);
+    text.setPosition(Vector2f( x, y + 200 ));
     vText.push_back(text);
     text.setString("Inaccuracy");
-    text.setPosition(x + 30, y + 200);
+    text.setPosition(Vector2f( x + 30, y + 200 ));
     vText.push_back(text);
     text.setString("0");
-    text.setPosition(x + 200, y + 200);
+    text.setPosition(Vector2f( x + 200, y + 200 ));
     vText.push_back(text);
 
     text.setString("0");
-    text.setPosition(x, y + 250);
+    text.setPosition(Vector2f( x, y + 250 ));
     vText.push_back(text);
     text.setString("Blunder");
-    text.setPosition(x + 30, y + 250);
+    text.setPosition(Vector2f( x + 30, y + 250 ));
     vText.push_back(text);
     text.setString("0");
-    text.setPosition(x + 200, y + 250);
+    text.setPosition(Vector2f( x + 200, y + 250 ));
     vText.push_back(text);
 
-    text.setPosition(x, y + 320);
+    text.setPosition(Vector2f( x, y + 320 ));
     text.setString("White accuracy:");
     vText.push_back(text);
-    text.setPosition(x + 200, y + 320);
+    text.setPosition(Vector2f( x + 200, y + 320 ));
     text.setString("0.0%");
     vText.push_back(text);
 
-    text.setPosition(x, y + 370);
+    text.setPosition(Vector2f( x, y + 370 ));
     text.setString("Black accuracy:");
     vText.push_back(text);
-    text.setPosition(x + 200, y + 370);
+    text.setPosition(Vector2f( x + 200, y + 370 ));
     text.setString("0.0%");
     vText.push_back(text);
 }
 void TCommentSection::setPos(int x0, int y0) {
     TObject::setPos(x0, y0);
 
-    vText[0].setPosition(x0 + 50, y0);
-    vText[1].setPosition(x0, y0 + 50);
-    vText[2].setPosition(x0 + 30, y0 + 50);
-    vText[3].setPosition(x0 + 200, y0 + 50);
+    vText[0].setPosition(Vector2f( x0 + 50, y0 ));
+    vText[1].setPosition(Vector2f( x0, y0 + 50 ));
+    vText[2].setPosition(Vector2f( x0 + 30, y0 + 50 ));
+    vText[3].setPosition(Vector2f( x0 + 200, y0 + 50 ));
 
-    vText[4].setPosition(x0, y0 + 100);
-    vText[5].setPosition(x0 + 30, y0 + 100);
-    vText[6].setPosition(x0 + 200, y0 + 100);
+    vText[4].setPosition(Vector2f( x0, y0 + 100 ));
+    vText[5].setPosition(Vector2f( x0 + 30, y0 + 100 ));
+    vText[6].setPosition(Vector2f( x0 + 200, y0 + 100 ));
 
-    vText[7].setPosition(x0, y0 + 150);
-    vText[8].setPosition(x0 + 30, y0 + 150);
-    vText[9].setPosition(x0 + 200, y0 + 150);
+    vText[7].setPosition(Vector2f( x0, y0 + 150 ));
+    vText[8].setPosition(Vector2f( x0 + 30, y0 + 150 ));
+    vText[9].setPosition(Vector2f( x0 + 200, y0 + 150 ));
 
-    vText[10].setPosition(x0, y0 + 200);
-    vText[11].setPosition(x0 + 30, y0 + 200);
-    vText[12].setPosition(x0 + 200, y0 + 200);
+    vText[10].setPosition(Vector2f( x0, y0 + 200 ));
+    vText[11].setPosition(Vector2f( x0 + 30, y0 + 200 ));
+    vText[12].setPosition(Vector2f( x0 + 200, y0 + 200 ));
 
-    vText[13].setPosition(x0, y0 + 250);
-    vText[14].setPosition(x0 + 30, y0 + 250);
-    vText[15].setPosition(x0 + 200, y0 + 250);
+    vText[13].setPosition(Vector2f( x0, y0 + 250 ));
+    vText[14].setPosition(Vector2f( x0 + 30, y0 + 250 ));
+    vText[15].setPosition(Vector2f( x0 + 200, y0 + 250 ));
 
-    vText[16].setPosition(x0, y0 + 320);
-    vText[17].setPosition(x0 + 200, y0 + 320);
-    vText[18].setPosition(x0, y0 + 370);
-    vText[19].setPosition(x0 + 200, y0 + 370);
+    vText[16].setPosition(Vector2f( x0, y0 + 320 ));
+    vText[17].setPosition(Vector2f( x0 + 200, y0 + 320 ));
+    vText[18].setPosition(Vector2f( x0, y0 + 370 ));
+    vText[19].setPosition(Vector2f( x0 + 200, y0 + 370 ));
 
 }
 void TCommentSection::setValues(std::vector<MoveData>& vdata) {
@@ -891,10 +885,9 @@ void AnalysicsController::getCurr() {
     }
 }
 
-TInput::TInput() : TClickable() {
-    text.setPosition(3, 3);
+TInput::TInput() : TClickable(), text(font) {
+    text.setPosition(Vector2f( 3, 3 ));
     text.setCharacterSize(fontSize);
-    text.setFont(font);
     text.setFillColor(Color::Black);
     setColor(Color::White);
     text.setString("");
@@ -946,7 +939,7 @@ void TInput::draw(RenderWindow& win) {
 }
 void TInput::setPos(int x0, int y0) {
     TClickable::setPos(x0, y0);
-    text.setPosition(x0 + 3, y0 + (height - fontSize) / 2 - 4);
+    text.setPosition(Vector2f(x0 + 3, y0 + (height - fontSize) / 2 - 4));
 }
 void TInput::setSize(int w, int h) {
     TClickable::setSize(w, h);
@@ -982,12 +975,12 @@ void TWait::setRadius(int tradius) {
     setPos();
 }
 void TWait::setPos() {
-    mas[0].setPosition(x + radius * s3 / 2, y);
-    mas[1].setPosition(x + radius * s3, y + radius / 2);
-    mas[2].setPosition(x + radius * s3, y + 3 * radius / 2);
-    mas[3].setPosition(x + radius * s3 / 2, y + 2 * radius);
-    mas[4].setPosition(x, y + 3 * radius / 2);
-    mas[5].setPosition(x, y + radius / 2);
+    mas[0].setPosition(Vector2f(x + radius * s3 / 2, y));
+    mas[1].setPosition(Vector2f(x + radius * s3, y + radius / 2));
+    mas[2].setPosition(Vector2f(x + radius * s3, y + 3 * radius / 2));
+    mas[3].setPosition(Vector2f(x + radius * s3 / 2, y + 2 * radius));
+    mas[4].setPosition(Vector2f(x, y + 3 * radius / 2));
+    mas[5].setPosition(Vector2f(x, y + radius / 2));
 }
 void TWait::draw(RenderWindow& win) {
     if (visible) {
@@ -1013,15 +1006,14 @@ void TClock::tictac() {
 std::string TClock::getStringTime(int seconds) {
     return std::to_string(seconds / 60) + ":" + std::to_string(seconds % 60 / 10) + std::to_string(seconds % 10);
 }
-TClock::TClock() : TObject(){
+TClock::TClock() : TObject(), text(font) {
     value = 0;
     setThickness(3);
     background.setFillColor(Color::White);
     text.setString(getStringTime(0));
     text.setFillColor(Color::Black);
     text.setCharacterSize(32);
-    text.setFont(font);
-    thread = new sf::Thread(&TClock::tictac, this);
+    thread = new std::thread(&TClock::tictac, this);
     setSize(150, 50);
 }
 void TClock::update(int seconds) {
@@ -1030,12 +1022,12 @@ void TClock::update(int seconds) {
 }
 void TClock::setPos(int tx, int ty) {
     TObject::setPos(tx, ty);
-    text.setPosition(tx + 47, ty + 4);
+    text.setPosition(Vector2f( tx + 47, ty + 4 ));
 }
 void TClock::start() {
     gameIsGoing = true;
     yourTurn = true;
-    thread->launch();
+    //thread->launch();
 }
 void TClock::pause() {
     background.setFillColor(Color(220, 220, 220));
@@ -1051,5 +1043,5 @@ void TClock::draw(RenderWindow& win) {
 }
 void TClock::stop() {
     gameIsGoing = false;
-    thread->terminate();
+    //thread->terminate();
 }

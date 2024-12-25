@@ -3,7 +3,7 @@
 typedef mytype TField[8][8];
 typedef mytype TAM[100][4];
 
-typedef enum MOVE_TYPE {
+enum MOVE_TYPE {
 	MOVE,
 	BEAT
 };

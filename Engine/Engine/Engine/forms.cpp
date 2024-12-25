@@ -73,15 +73,13 @@ void TAnalysicsForm::poll() {
 
     while (win.isOpen())
     {
-        Event event;
-
-        while (win.pollEvent(event))
+        while (const std::optional event = win.pollEvent())
         {
-            if (event.type == Event::Closed) {
+            if (event->is<Event::Closed>()) {
                 win.close();
                 open = false;
             }
-            else if (event.type == Event::MouseButtonPressed) {
+            else if (event->is<Event::MouseButtonPressed>()) {
                 Vector2f pos = Vector2f(Mouse::getPosition(win));
                 if (exitB.isPressed(pos)) {
                     win.close();
@@ -92,19 +90,19 @@ void TAnalysicsForm::poll() {
                     bar.flip();
                 }
             }
-            else if (Keyboard::isKeyPressed(Keyboard::Up)) {
+            else if (Keyboard::isKeyPressed(Keyboard::Key::Up)) {
                 control.getCurr();
                 board.setField(control.field);
                 board.setComment(control.comment, control.x1, control.y1, control.x2, control.y2);
                 bar.setValue(control.assess);
             }
-            else if (Keyboard::isKeyPressed(Keyboard::Left)) {
+            else if (Keyboard::isKeyPressed(Keyboard::Key::Left)) {
                 control.getPrev();
                 board.setField(control.field);
                 board.setComment(control.comment, control.x1, control.y1, control.x2, control.y2);
                 bar.setValue(control.assess);
             }
-            else if (Keyboard::isKeyPressed(Keyboard::Right)) {
+            else if (Keyboard::isKeyPressed(Keyboard::Key::Right)) {
                 control.getNext();
                 board.setField(control.field);
                 board.setComment(control.comment, control.x1, control.y1, control.x2, control.y2);
@@ -131,10 +129,10 @@ void TStartForm::draw() {
     exitB.draw(win);
     win.display();
 }
-TStartForm::TStartForm() : win(VideoMode(760, 850), "Russian checkers", Style::Close) {
+TStartForm::TStartForm() : win(VideoMode({ 760, 850 }), "Russian checkers", Style::Close) {
 
-    win.setIcon(512, 512, icon.getPixelsPtr());
-    win.setFramerateLimit(60);
+    win.setIcon(icon);
+    win.setFramerateLimit(150);
     win.setVerticalSyncEnabled(true);
 
     background.setSize(Vector2f(win.getSize()));
@@ -257,14 +255,13 @@ TStartForm::TStartForm() : win(VideoMode(760, 850), "Russian checkers", Style::C
 }
 void TStartForm::poll() {
     while (win.isOpen()) {
-        Event event;
 
-        while (win.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) {
+        while (const std::optional event = win.pollEvent()) {
+            if (event->is<Event::Closed>()) {
                 win.close();
                 open = false;
             }
-            else if (event.type == sf::Event::MouseButtonPressed) {
+            else if (event->is<Event::MouseButtonPressed>()) {
                 Vector2f pos = Vector2f(Mouse::getPosition(win));
 
                 int index = -1;
@@ -346,8 +343,8 @@ void TStartForm::poll() {
                     open = false;
                 }
             }
-            else if (event.type == sf::Event::KeyPressed) {
-                char key = event.key.code;
+            else if (event->is<Event::TextEntered>()) {
+                char key = 'a';//static_cast<char>(event.value.text.scancode);
                 vInput[0].onKeyPress(key);
                 vInput[1].onKeyPress(key);
             }
@@ -367,9 +364,9 @@ void TEngineForm::draw(int posx, int posy) {
     timeLabel.draw(win);
     win.display();
 }
-TEngineForm::TEngineForm() : win(VideoMode(1200, 900), "Russian checkers", Style::Close) {
+TEngineForm::TEngineForm() : win(VideoMode({ 1200, 900 }), "Russian checkers", Style::Close) {
 
-    win.setIcon(512, 512, icon.getPixelsPtr());
+    win.setIcon(icon);
     win.setFramerateLimit(150);
     win.setVerticalSyncEnabled(true);
 
@@ -405,14 +402,14 @@ TEngineForm::TEngineForm() : win(VideoMode(1200, 900), "Russian checkers", Style
     resultLabel.setVisible(false);
 
     board.setField(control.field);
-    engineThread = new Thread(&TEngineForm::engineMove, this);
+    //engineThread = new Thread(&TEngineForm::engineMove, this);
 
     timeLabel.setPos(950, 500);
     timeLabel.setText("Time: ");
 
     if (!turn) {
         board.flip();
-        engineThread->launch();
+        //engineThread->launch();
     }
     
 }
@@ -427,58 +424,52 @@ void TEngineForm::poll() {
 
     while (win.isOpen())
     {
-        Event event;
         pos = Vector2f(Mouse::getPosition(win));
-        while (win.pollEvent(event))
-        {
-            if (event.type == Event::Closed) {
+        while (const std::optional event = win.pollEvent()) {
+            if (event->is<Event::Closed>()) {
                 win.close();
-                engineThread->wait();
+                //engineThread->wait();
                 open = false;
             }
-            else if (event.type == Event::MouseButtonPressed) {
+            else if (event->is<Event::MouseButtonPressed>()) {
                 board.capture(pos.x, pos.y);
                 if (exitB.isPressed(pos)) {
                     win.close();
-                    engineThread->wait();
+                    //engineThread->wait();
                     open = true;
                 }
                 else if (flipB.isPressed(pos)) {
                     board.flip();
                 }
                 else if (analysicsB.isPressed(pos)) {
-                    RenderWindow start(VideoMode(1300, 900), "VOBLA", Style::Close);
-                    start.setFramerateLimit(150);
-                    start.setVerticalSyncEnabled(true);
+                    std::unique_ptr<RenderWindow> analysicsWindow{new RenderWindow(VideoMode({ 1300, 900 }), "VOBLA", Style::Close)};
+                    analysicsWindow->setFramerateLimit(150);
+                    analysicsWindow->setVerticalSyncEnabled(true);
 
-                    TAnalysicsForm form1(start, control.gameMoves);
-                    form1.poll();
+                    std::unique_ptr<TAnalysicsForm> analysicsForm{ new TAnalysicsForm(*analysicsWindow.get(), control.gameMoves)};
+                    analysicsForm->poll();
                 }
-                else {
-                    if (event.mouseButton.button == Mouse::Left) {
-                        LP = true;
-                        LPPos = pos;
-                    }
+                else if (Mouse::isButtonPressed(Mouse::Button::Left)) {
+                    LP = true;
+                    LPPos = pos;
                 }
             }
-            else if (event.type == Event::MouseButtonReleased) {
+            else if (event->is<Event::MouseButtonReleased>()) {
                 board.uncatch();
-                if (LP) {
-                    if (event.mouseButton.button == Mouse::Left) {
-                        LR = true;
-                        LRPos = pos;
-                    }
+                if (LP && Mouse::isButtonPressed(Mouse::Button::Left)) {
+                    LR = true;
+                    LRPos = pos;
                 }
             }
-            else if (Keyboard::isKeyPressed(Keyboard::Up)) {
+            else if (Keyboard::isKeyPressed(Keyboard::Key::Up)) {
                 control.getCurr();
                 board.setField(control.field);
             }
-            else if (Keyboard::isKeyPressed(Keyboard::Left)) {
+            else if (Keyboard::isKeyPressed(Keyboard::Key::Left)) {
                 control.getPrev();
                 board.setField(control.field);
             }
-            else if (Keyboard::isKeyPressed(Keyboard::Right)) {
+            else if (Keyboard::isKeyPressed(Keyboard::Key::Right)) {
                 control.getNext();
                 board.setField(control.field);
             }
@@ -493,7 +484,7 @@ void TEngineForm::poll() {
                     if (result != INVALID_COORD) {
                         board.setField(control.field);
                         if (result == SUCCESS) {
-                            engineThread->launch();
+                            //engineThread->launch();
                         }
                         else if (result == WIN) {
                             resultLabel.setText("You win");
@@ -505,7 +496,7 @@ void TEngineForm::poll() {
         }
         draw(pos.x, pos.y);
     }
-    engineThread->terminate();
+    //engineThread->terminate();
 }
 void TEngineForm::engineMove() {
     auto start = std::chrono::high_resolution_clock::now();
@@ -655,9 +646,8 @@ void TPvpForm::loading() {
         sleep(milliseconds(300));
     }
 }
-TPvpForm::TPvpForm() : win(VideoMode(1200, 900), "Russian checkers", Style::Close) {
-
-    win.setIcon(512, 512, icon.getPixelsPtr());
+TPvpForm::TPvpForm() : win(VideoMode({ 1200, 900 }), "Russian checkers", Style::Close) {
+    win.setIcon(icon);
     win.setFramerateLimit(60);
     win.setVerticalSyncEnabled(true);
 
@@ -741,24 +731,21 @@ void TPvpForm::poll() {
 
     Vector2f LPPos, LRPos;
 
-    sf::Thread loadingThread(&TPvpForm::loading, this);
-    loadingThread.launch();
+    std::thread loadingThread(&TPvpForm::loading, this);
 
-    sf::Thread receiveTurn(&TPvpForm::receive, this);
-    receiveTurn.launch();
+    std::thread receiveTurn(&TPvpForm::receive, this);
 
     while (win.isOpen())
     {
         Vector2f pos = Vector2f(Mouse::getPosition(win));
-        Event event;
 
-        while (win.pollEvent(event))
+        while (const std::optional event = win.pollEvent())
         {
-            if (event.type == Event::Closed) {
+            if (event->is<Event::Closed>()) {
                 win.close();
                 open = false;
             }
-            else if (event.type == Event::MouseButtonPressed) {
+            else if (event->is<Event::MouseButtonPressed>()) {
                 board.capture(pos.x, pos.y);
                 if (exitB.isPressed(pos)) {
                     win.close();
@@ -768,7 +755,7 @@ void TPvpForm::poll() {
                     board.flip();
                 }
                 else if (analysicsB.isPressed(pos)) {
-                    RenderWindow start(VideoMode(1300, 900), "VOBLA", Style::Close);
+                    RenderWindow start(VideoMode({ 1300, 900 }), "VOBLA", Style::Close);
                     start.setFramerateLimit(60);
                     start.setVerticalSyncEnabled(true);
 
@@ -782,33 +769,33 @@ void TPvpForm::poll() {
                     offerdraw();
                 }
                 else {
-                    if (event.mouseButton.button == Mouse::Left) {
+                    if (Mouse::isButtonPressed(Mouse::Button::Left)) {
                         LP = true;
                         LPPos = pos;
                     }
                 }
             }
-            else if (event.type == Event::MouseButtonReleased) {
+            else if (event->is<Event::MouseButtonReleased>()) {
                 board.uncatch();
                 if (LP) {
                     Vector2f pos = Vector2f(Mouse::getPosition(win));
-                    if (event.mouseButton.button == Mouse::Left) {
+                    if (Mouse::isButtonPressed(Mouse::Button::Left)) {
                         LR = true;
                         LRPos = pos;
                     }
                 }
             }
-            else if (Keyboard::isKeyPressed(Keyboard::Up)) {
+            else if (Keyboard::isKeyPressed(Keyboard::Key::Up)) {
                 control.getCurr();
                 board.setField(control.field);
             }
-            else if (Keyboard::isKeyPressed(Keyboard::Left)) {
+            else if (Keyboard::isKeyPressed(Keyboard::Key::Left)) {
                 vMoves.clear();
                 board.redReset();
                 control.getPrev();
                 board.setField(control.field);
             }
-            else if (Keyboard::isKeyPressed(Keyboard::Right)) {
+            else if (Keyboard::isKeyPressed(Keyboard::Key::Right)) {
                 control.getNext();
                 board.setField(control.field);
             }
@@ -826,8 +813,8 @@ void TPvpForm::poll() {
 
     clock1.stop();
     clock2.stop();
-    receiveTurn.terminate();
-    loadingThread.terminate();
+    //receiveTurn.terminate();
+    //loadingThread.terminate();
     /*socket.disconnect();
     listener.close();*/
 }
