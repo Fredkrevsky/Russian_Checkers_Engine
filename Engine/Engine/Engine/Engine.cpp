@@ -1,16 +1,18 @@
 #include "Engine.h"
 #include <algorithm>
 #include <future>
+#include <vector>
 
+using std::max, std::min, std::vector, std::future;
 
 #ifdef THREADS
 Engine::Engine() : threadPool(50) { }
-void Engine::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vector, bool turn, int depth) {
+void Engine::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vec, bool turn, int depth) {
 	TAM AllMoves;
 	mytype len = 0;
-	bool ntb = PMFill(field, type, AllMoves, &len, turn, x, y, vector);
+	bool ntb = PMFill(field, type, AllMoves, &len, turn, x, y, vec);
 
-	std::vector<std::future<MoveData>> futures;
+	vector<future<MoveData>> futures;
 
 	for (mytype i = 0; i < len; i++) {
 		futures.emplace_back(threadPool.add_task([=, &field]() -> MoveData {
@@ -22,14 +24,11 @@ void Engine::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vect
 			mytype x2 = AllMoves[i][2];
 			mytype y2 = AllMoves[i][3];
 
-			temp.coord[0] = x1;
-			temp.coord[1] = y1;
-			temp.coord[2] = x2;
-			temp.coord[3] = y2;
+			memcpy(temp.coord, AllMoves[i], 4);
 
 			if (ntb) {
 				if (temp.field[x1][y1] >= 3) {
-					DamkaBeat(temp.field, x1, y1, x2, y2, vector);
+					DamkaBeat(temp.field, x1, y1, x2, y2, vec);
 				}
 				else {
 					Beat(temp.field, x1, y1, x2, y2);
@@ -37,15 +36,15 @@ void Engine::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vect
 				temp.x = x2;
 				temp.y = y2;
 				temp.type = BEAT;
-				temp.vector = GetMode(x1, y1, x2, y2, vector);
-				temp.assess = mmAB(temp.field, x2, y2, temp.vector, depth, -100, 100, turn);
+				temp.vec = GetMode(x1, y1, x2, y2, vec);
+				temp.assess = mmAB(temp.field, x2, y2, temp.vec, depth, -100, 100, turn);
 			}
 			else {
 				Move(temp.field, x1, y1, x2, y2);
 				temp.x = 0;
 				temp.y = 0;
 				temp.type = MOVE;
-				temp.vector = 0;
+				temp.vec = 0;
 				temp.assess = mmAB(temp.field, depth - 1, -100, 100, !turn);
 			}
 			return temp;
@@ -53,9 +52,9 @@ void Engine::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vect
 	}
 
 	moves.clear();
-	for (auto& future : futures) {
-		moves.push_back(future.get());
-	}
+	std::transform(futures.begin(), futures.end(), moves.begin(), [](auto& future) -> MoveData {
+		return future.get();
+		});
 
 	std::sort(moves.begin(), moves.end(), [](const auto& f, const auto& s) {
 		return f.assess < s.assess;
@@ -125,12 +124,12 @@ void Engine::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vect
 #endif
 
 mytype Engine::find(mytype x1, mytype y1, mytype x2, mytype y2) {
-	for (int i = 0; i < moves.size(); i++) {
-		if (moves[i].coord[0] == x1 && moves[i].coord[1] == y1 && moves[i].coord[2] == x2 && moves[i].coord[3] == y2) {
-			return i;
-		}
-	}
-	return -1;
+	mytype toFind[4] = {x1, y1, x2, y2};
+	auto it = std::find_if(moves.begin(), moves.end(), [&](auto& move) -> bool {
+		return memcpy(move.coord, toFind, 4) == 0;
+		});
+
+	return it == moves.end() ? -1 : std::distance(it, moves.begin());
 }
 
 float Engine::mmAB(TField& field, int depth, float alpha, float beta, bool turn) {
@@ -144,11 +143,11 @@ float Engine::mmAB(TField& field, int depth, float alpha, float beta, bool turn)
 	}
 
 	if ((depth <= 0) && (!ntb)) {
-		return (float)getAssess(field) / 10;
+		return getAssess(field) / 10.f;
 	}
 	if (turn) {
-		float maxEval = -100;
-		float eval;
+		float maxEval = -100.f;
+		float eval{};
 		for (int i = 0; i < len; i++) {
 			mytype tempVector = 0;
 			TField TempBoard;
@@ -174,8 +173,8 @@ float Engine::mmAB(TField& field, int depth, float alpha, float beta, bool turn)
 				Move(TempBoard, x1, y1, x2, y2);
 				eval = mmAB(TempBoard, depth - 1, alpha, beta, !turn);
 			}
-			maxEval = std::max(maxEval, eval);
-			alpha = std::max(alpha, eval);
+			maxEval = max(maxEval, eval);
+			alpha = max(alpha, eval);
 			if (beta <= alpha) {
 				break;
 			}
@@ -183,8 +182,8 @@ float Engine::mmAB(TField& field, int depth, float alpha, float beta, bool turn)
 		return maxEval;
 	}
 	else {
-		float minEval = 100;
-		float eval;
+		float minEval = 100.f;
+		float eval{};
 		for (int i = 0; i < len; i++) {
 			mytype tempVector = 0;
 			TField TempBoard;
@@ -211,8 +210,8 @@ float Engine::mmAB(TField& field, int depth, float alpha, float beta, bool turn)
 				eval = mmAB(TempBoard, depth - 1, alpha, beta, !turn);
 			}
 
-			minEval = std::min(minEval, eval);
-			beta = std::min(beta, eval);
+			minEval = min(minEval, eval);
+			beta = min(beta, eval);
 			if (beta <= alpha) {
 				break;
 			}
@@ -221,11 +220,11 @@ float Engine::mmAB(TField& field, int depth, float alpha, float beta, bool turn)
 	}
 }
 
-float Engine::mmAB(TField& field, mytype x, mytype y, mytype vector, int depth, float alpha, float beta, bool turn) {
+float Engine::mmAB(TField& field, mytype x, mytype y, mytype vec, int depth, float alpha, float beta, bool turn) {
 
 	TAM AllMoves;
 	mytype len = 0;
-	bool ntb = PMFill(field, BEAT, AllMoves, &len, turn, x, y, vector);
+	bool ntb = PMFill(field, BEAT, AllMoves, &len, turn, x, y, vec);
 
 	if (len == 0) {
 		return mmAB(field, depth - 1, alpha, beta, !turn);
@@ -238,7 +237,7 @@ float Engine::mmAB(TField& field, mytype x, mytype y, mytype vector, int depth, 
 		float maxEval = -100;
 		float eval;
 		for (int i = 0; i < len; i++) {
-			mytype tempVector = vector;
+			mytype tempVector = vec;
 			TField TempBoard;
 			memcpy(TempBoard, field, 64);
 
@@ -274,7 +273,7 @@ float Engine::mmAB(TField& field, mytype x, mytype y, mytype vector, int depth, 
 		float minEval = 100;
 		float eval;
 		for (int i = 0; i < len; i++) {
-			mytype tempVector = vector;
+			mytype tempVector = vec;
 			TField TempBoard;
 			memcpy(TempBoard, field, 64);
 
@@ -309,10 +308,10 @@ float Engine::mmAB(TField& field, mytype x, mytype y, mytype vector, int depth, 
 	}
 }
 
-void Engine::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vector, bool turn) {
+void Engine::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vec, bool turn) {
 	TAM AllMoves;
 	mytype len = 0;
-	bool ntb = PMFill(field, type, AllMoves, &len, turn, x, y, vector);
+	bool ntb = PMFill(field, type, AllMoves, &len, turn, x, y, vec);
 	moves.clear();
 
 	MoveData temp;
@@ -326,15 +325,12 @@ void Engine::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vect
 		x2 = AllMoves[i][2];
 		y2 = AllMoves[i][3];
 
-		temp.coord[0] = x1;
-		temp.coord[1] = y1;
-		temp.coord[2] = x2;
-		temp.coord[3] = y2;
+		memcpy(temp.coord, AllMoves[i], 4);
 		temp.type = type;
 
 		if (ntb) {
 			if (temp.field[x1][y1] >= 3) {
-				DamkaBeat(temp.field, x1, y1, x2, y2, vector);
+				DamkaBeat(temp.field, x1, y1, x2, y2, vec);
 			}
 			else {
 				Beat(temp.field, x1, y1, x2, y2);
@@ -342,14 +338,14 @@ void Engine::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vect
 			temp.x = x2;
 			temp.y = y2;
 			temp.type = BEAT;
-			temp.vector = GetMode(x1, y1, x2, y2, vector);
+			temp.vec = GetMode(x1, y1, x2, y2, vec);
 		}
 		else {
 			Move(temp.field, x1, y1, x2, y2);
 			temp.x = 0;
 			temp.y = 0;
 			temp.type = MOVE;
-			temp.vector = 0;
+			temp.vec = 0;
 		}
 		temp.assess = 0;
 		moves.push_back(temp);
@@ -364,11 +360,11 @@ MOVE_RESULT Engine::PlayerMove(MoveData& data) {
 	MOVE_TYPE type = data.type;
 	mytype x = data.x;
 	mytype y = data.y;
-	mytype vector = data.vector;
+	mytype vec = data.vec;
 	float assess = 0;
 	bool turn = data.turn;
 
-	fill(field, type, x, y, vector, turn);
+	fill(field, type, x, y, vec, turn);
 
 	mytype x1 = data.coord[0];
 	mytype y1 = data.coord[1];
@@ -379,22 +375,22 @@ MOVE_RESULT Engine::PlayerMove(MoveData& data) {
 	if (index != -1) {
 		MoveData move = moves[index];
 		type = move.type;
-		vector = move.vector;
+		vec = move.vec;
 		memcpy(field, move.field, 64);
 
 		if (type == BEAT) {
 
-			vector = GetMode(x1, y1, x2, y2, vector);
+			vec = GetMode(x1, y1, x2, y2, vec);
 			x = x2;
 			y = y2;
 
 			data.type = BEAT;
-			data.vector = vector;
+			data.vec = vec;
 			data.x = x;
 			data.y = y;
 			memcpy(data.field, field, 64);
 
-			fill(field, type, x, y, vector, turn);
+			fill(field, type, x, y, vec, turn);
 
 			if (moves.size() > 0) {
 
@@ -404,12 +400,12 @@ MOVE_RESULT Engine::PlayerMove(MoveData& data) {
 				data.x = 0;
 				data.y = 0;
 				data.type = MOVE;
-				data.vector = 0;
+				data.vec = 0;
 			}
 		}
 		else {
 			data.type = MOVE;
-			data.vector = 0;
+			data.vec = 0;
 			data.x = 0;
 			data.y = 0;
 			memcpy(data.field, field, 64);
@@ -432,7 +428,7 @@ MOVE_RESULT Engine::EngineMove(MoveData& data, mytype depth) {
 	MOVE_TYPE type = data.type;
 	mytype x = data.x;
 	mytype y = data.y;
-	mytype vector = data.vector;
+	mytype vector = data.vec;
 	float assess = 0;
 	bool turn = data.turn;
 
@@ -444,13 +440,16 @@ MOVE_RESULT Engine::EngineMove(MoveData& data, mytype depth) {
 	if (moves.size() > 0) {
 		MoveData move = moves[0];
 
-		mytype x1 = data.coord[0] = move.coord[0];
-		mytype y1 = data.coord[1] = move.coord[1];
-		mytype x2 = data.coord[2] = move.coord[2];
-		mytype y2 = data.coord[3] = move.coord[3];
+		memcpy(data.coord, move.coord, 4);
+		
+		mytype x1 = data.coord[0];
+		mytype y1 = data.coord[1];
+		mytype x2 = data.coord[2];
+		mytype y2 = data.coord[3];
+
 
 		type = move.type;
-		vector = move.vector;
+		vector = move.vec;
 		memcpy(field, move.field, 64);
 
 		if (type == BEAT) {
@@ -460,7 +459,7 @@ MOVE_RESULT Engine::EngineMove(MoveData& data, mytype depth) {
 			y = y2;
 
 			data.type = BEAT;
-			data.vector = vector;
+			data.vec = vector;
 			data.x = x;
 			data.y = y;
 			memcpy(data.field, field, 64);
@@ -475,12 +474,12 @@ MOVE_RESULT Engine::EngineMove(MoveData& data, mytype depth) {
 				data.x = 0;
 				data.y = 0;
 				data.type = MOVE;
-				data.vector = 0;
+				data.vec = 0;
 			}
 		}
 		else {
 			data.type = MOVE;
-			data.vector = 0;
+			data.vec = 0;
 			data.x = 0;
 			data.y = 0;
 			memcpy(data.field, field, 64);
@@ -502,7 +501,7 @@ void Engine::evaluate(MoveData& data, mytype depth) {
 	int index = -1;
 	bool turn = data.turn;
 
-	fill(data.oldfield, data.type, data.x, data.y, data.vector, turn, depth);
+	fill(data.oldfield, data.type, data.x, data.y, data.vec, turn, depth);
 	index = find(data.coord[0], data.coord[1], data.coord[2], data.coord[3]);
 	assess = moves[index].assess;
 	float temp_assess = moves[0].assess;

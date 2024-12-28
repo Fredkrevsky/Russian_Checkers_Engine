@@ -2,17 +2,12 @@
 #include <SFML/System.hpp>
 #include "forms.h"
 
-bool open = true;
-bool turn = true;
-bool mode = false;
-bool pvp = true;
-
-int depth = 12;
-
 //TcpSocket socket;
 //TcpListener listener;
 sf::Font font;
 sf::Image icon;
+
+using std::unique_ptr;
 
 int main()
 {
@@ -24,24 +19,8 @@ int main()
         return 2;
     }
 
-    while (open) {
-        pvp = true;
-        if (open) {
-            TStartForm* form = new TStartForm();
-            form->poll();
-            delete form;
-        }
-        if (open && !pvp) {
-            TEngineForm* form = new TEngineForm();
-            form->poll();
-            delete form;
-        }
-        else if (open) {
-            TPvpForm* form = new TPvpForm();
-            form->poll();
-            delete form;
-        }
-    }
+    unique_ptr<TForm> mainForm{new TStartForm()};
+    mainForm->poll();
 
     return 0;
 }

@@ -2,32 +2,23 @@
 #include <mutex>
 #include <chrono>
 
-void TAnalysicsForm::drawprogress() {
-    win.clear();
-    win.draw(background);
-    board.draw(win, 0, 0);
-    bar.draw(win);
-    exitB.draw(win);
-    flipB.draw(win);
-    pbar.draw(win);
-    section.draw(win);
-    win.display();
+#define PVP_FORM_SIZE Vector2u{1200, 900}
+#define START_FORM_SIZE Vector2u{760, 850}
+#define ENGINE_FORM_SIZE Vector2u{1200, 900}
+#define ANALYSICS_FORM_SIZE Vector2u{1200, 900}
+
+void TAnalysicsForm::onDraw() const {
+    bar.draw(window);
+    board.draw(window);
+    exitB.draw(window);
+    flipB.draw(window);
+    section.draw(window);
 }
-void TAnalysicsForm::draw() {
-    win.clear();
-    win.draw(background);
-    bar.draw(win);
-    board.draw(win, 0, 0);
-    exitB.draw(win);
-    flipB.draw(win);
-    section.draw(win);
-    win.display();
-}
-TAnalysicsForm::TAnalysicsForm(RenderWindow& renwin, std::vector<MoveData>& data) : win(renwin) {
+
+TAnalysicsForm::TAnalysicsForm(std::vector<MoveData>& data) : 
+    TForm(ANALYSICS_FORM_SIZE, "Analysics form") {
 
     control.setMoves(data);
-    background.setSize(Vector2f(win.getSize()));
-    background.setFillColor(Color::White);
 
     board.setField(control.gameMoves[0].field);
     board.setPos(100, 50);
@@ -57,88 +48,87 @@ TAnalysicsForm::TAnalysicsForm(RenderWindow& renwin, std::vector<MoveData>& data
     section.setPos(1000, 50);
 
     bar.setValue(0.0);
-    drawprogress();
+    draw();
 
     for (int i = 1; i < control.gameMoves.size(); i++) {
         control.evaluate(i, 10);
         pbar.setValue((float)i / control.gameMoves.size());
-        drawprogress();
+        draw();
     }
     section.setValues(control.gameMoves);
     draw();
 }
-void TAnalysicsForm::poll() {
 
-    Vector2f LPPos, LRPos;
+//void TAnalysicsForm::poll() {
+//
+//    Vector2f LPPos, LRPos;
+//
+//    while (win.isOpen())
+//    {
+//        while (const std::optional event = win.pollEvent())
+//        {
+//            if (event->is<Event::Closed>()) {
+//                onClose();
+//                /*win.close();
+//                open = false;*/
+//            }
+//            else if (event->is<Event::MouseButtonPressed>()) {
+//                onLeftButtonPress();
+//                /*Vector2f pos = Vector2f(Mouse::getPosition(win));
+//                if (exitB.isPressed(pos)) {
+//                    win.close();
+//                    open = true;
+//                }
+//                else if (flipB.isPressed(pos)) {
+//                    board.flip();
+//                    bar.flip();
+//                }*/
+//            }
+//            else if (Keyboard::isKeyPressed(Keyboard::Key::Up)) {
+//                onKeyDown();
+//                /*control.getCurr();
+//                board.setField(control.field);
+//                board.setComment(control.comment, control.x1, control.y1, control.x2, control.y2);
+//                bar.setValue(control.assess);*/
+//            }
+//            else if (Keyboard::isKeyPressed(Keyboard::Key::Left)) {
+//                /*control.getPrev();
+//                board.setField(control.field);
+//                board.setComment(control.comment, control.x1, control.y1, control.x2, control.y2);
+//                bar.setValue(control.assess);*/
+//            }
+//            else if (Keyboard::isKeyPressed(Keyboard::Key::Right)) {
+//                /*control.getNext();
+//                board.setField(control.field);
+//                board.setComment(control.comment, control.x1, control.y1, control.x2, control.y2);
+//                bar.setValue(control.assess);*/
+//            }
+//        }
+//        draw();
+//    }
+//}
 
-    while (win.isOpen())
-    {
-        while (const std::optional event = win.pollEvent())
-        {
-            if (event->is<Event::Closed>()) {
-                win.close();
-                open = false;
-            }
-            else if (event->is<Event::MouseButtonPressed>()) {
-                Vector2f pos = Vector2f(Mouse::getPosition(win));
-                if (exitB.isPressed(pos)) {
-                    win.close();
-                    open = true;
-                }
-                else if (flipB.isPressed(pos)) {
-                    board.flip();
-                    bar.flip();
-                }
-            }
-            else if (Keyboard::isKeyPressed(Keyboard::Key::Up)) {
-                control.getCurr();
-                board.setField(control.field);
-                board.setComment(control.comment, control.x1, control.y1, control.x2, control.y2);
-                bar.setValue(control.assess);
-            }
-            else if (Keyboard::isKeyPressed(Keyboard::Key::Left)) {
-                control.getPrev();
-                board.setField(control.field);
-                board.setComment(control.comment, control.x1, control.y1, control.x2, control.y2);
-                bar.setValue(control.assess);
-            }
-            else if (Keyboard::isKeyPressed(Keyboard::Key::Right)) {
-                control.getNext();
-                board.setField(control.field);
-                board.setComment(control.comment, control.x1, control.y1, control.x2, control.y2);
-                bar.setValue(control.assess);
-            }
-        }
-        draw();
-    }
+void TStartForm::onDraw() const {
+    std::ranges::for_each(vLabel, [&](const auto& label) {
+        label.draw(window);
+    });
+    std::ranges::for_each(vChoice, [&](const auto& choice) {
+        choice.draw(window);
+    });
+    std::ranges::for_each(vInput, [&](const auto& input) {
+        input.draw(window);
+    });
+    startB.draw(window);
+    exitB.draw(window);
 }
 
-void TStartForm::draw() {
-    win.clear();
-    win.draw(background);
-    for (TLabel& elem : vLabel) {
-        elem.draw(win);
-    }
-    for (TChoice& elem : vChoice) {
-        elem.draw(win);
-    }
-    for (TInput& elem : vInput) {
-        elem.draw(win);
-    }
-    startB.draw(win);
-    exitB.draw(win);
-    win.display();
-}
-TStartForm::TStartForm() : win(VideoMode({ 760, 850 }), "Russian checkers", Style::Close) {
+TStartForm::TStartForm() : TForm(START_FORM_SIZE, "Start form") {
 
-    win.setIcon(icon);
-    win.setFramerateLimit(150);
-    win.setVerticalSyncEnabled(true);
-
-    background.setSize(Vector2f(win.getSize()));
+    background.setSize(Vector2f(window.getSize()));
     background.setFillColor(Color::White);
 
     TLabel tempL;
+
     tempL.setText("Choose mode:");
     tempL.setPos(320, 30);
     vLabel.push_back(tempL);
@@ -253,125 +243,123 @@ TStartForm::TStartForm() : win(VideoMode({ 760, 850 }), "Russian checkers", Styl
 
     draw();
 }
-void TStartForm::poll() {
-    while (win.isOpen()) {
 
-        while (const std::optional event = win.pollEvent()) {
-            if (event->is<Event::Closed>()) {
-                win.close();
-                open = false;
-            }
-            else if (event->is<Event::MouseButtonPressed>()) {
-                Vector2f pos = Vector2f(Mouse::getPosition(win));
+TStartForm::~TStartForm() { }
 
-                int index = -1;
-                for (int i = 0; i < 8; i++) {
-                    if (vChoice[i].isPressed(pos)) {
-                        index = i;
-                        break;
-                    }
-                }
-                if (index != -1) {
-                    if (index == 0) {
-                        vChoice[0].setStatus(true);
-                        vChoice[1].setStatus(false);
-                        for (int i = 2; i < 8; ++i) {
-                            vChoice[i].setVisible(false);
-                        }
-                        for (int i = 3; i < 11; ++i) {
-                            vLabel[i].setVisible(false);
-                        }
-                        vInput[0].setVisible(true);
-                        vInput[1].setVisible(true);
-                        vLabel[11].setVisible(true);
-                        vLabel[12].setVisible(true);
-                        pvp = true;
-                    }
-                    else if (index == 1) {
-                        vChoice[1].setStatus(true);
-                        vChoice[0].setStatus(false);
-                        for (int i = 2; i < 8; ++i) {
-                            vChoice[i].setVisible(true);
-                        }
-                        for (int i = 3; i < 11; ++i) {
-                            vLabel[i].setVisible(true);
-                        }
-                        vInput[0].setVisible(false);
-                        vInput[1].setVisible(false);
-                        vLabel[11].setVisible(false);
-                        vLabel[12].setVisible(false);
-                        pvp = false;
-                    }
-                    else if (index == 2) {
-                        turn = true;
-                        vChoice[2].setStatus(true);
-                        vChoice[3].setStatus(false);
-                    }
-                    else if (index == 3) {
-                        turn = false;
-                        vChoice[2].setStatus(false);
-                        vChoice[3].setStatus(true);
-                    }
-                    else {
-                        for (int i = 4; i < 8; i++) {
-                            if (i != index) {
-                                vChoice[i].setStatus(false);
-                            }
-                            else {
-                                vChoice[i].setStatus(true);
-                            }
-                        }
-                        depth = masDepth[index - 4];
-                    }
-                }
-                else if (vInput[0].isPressed(pos)) {
-                    vInput[0].onPress();
-                    vInput[1].onRelease();
-                }
-                else if (vInput[1].isPressed(pos)) {
-                    vInput[1].onPress();
-                    vInput[0].onRelease();
-                }
-                else if (startB.isPressed(pos)) {
-                    if (!pvp/* || pvp && vInput[1].getText().size() && socket.connect(vInput[0].getText(), stoi(vInput[1].getText())) == Socket::Done*/) {
-                        win.close();
-                        open = true;
-                    }
-                }
-                else if (exitB.isPressed(pos)) {
-                    win.close();
-                    open = false;
-                }
-            }
-            else if (event->is<Event::TextEntered>()) {
-                char key = 'a';//static_cast<char>(event.value.text.scancode);
-                vInput[0].onKeyPress(key);
-                vInput[1].onKeyPress(key);
-            }
-        }
-        draw();
-    }
+//void TStartForm::poll() {
+//
+//    while (win.isOpen()) {
+//
+//        while (const std::optional event = win.pollEvent()) {
+//            if (event->is<Event::Closed>()) {
+//                onClose();
+//                /*win.close();
+//                open = false;*/
+//            }
+//            else if (event->is<Event::MouseButtonPressed>()) {
+//                onLeftButtonPress();
+//                //Vector2f pos = Vector2f(Mouse::getPosition(win));
+//
+//                //int index = -1;
+//                //for (int i = 0; i < 8; i++) {
+//                //    if (vChoice[i].isPressed(pos)) {
+//                //        index = i;
+//                //        break;
+//                //    }
+//                //}
+//                //if (index != -1) {
+//                //    if (index == 0) {
+//                //        vChoice[0].setStatus(true);
+//                //        vChoice[1].setStatus(false);
+//                //        for (int i = 2; i < 8; ++i) {
+//                //            vChoice[i].setVisible(false);
+//                //        }
+//                //        for (int i = 3; i < 11; ++i) {
+//                //            vLabel[i].setVisible(false);
+//                //        }
+//                //        vInput[0].setVisible(true);
+//                //        vInput[1].setVisible(true);
+//                //        vLabel[11].setVisible(true);
+//                //        vLabel[12].setVisible(true);
+//                //        pvp = true;
+//                //    }
+//                //    else if (index == 1) {
+//                //        vChoice[1].setStatus(true);
+//                //        vChoice[0].setStatus(false);
+//                //        for (int i = 2; i < 8; ++i) {
+//                //            vChoice[i].setVisible(true);
+//                //        }
+//                //        for (int i = 3; i < 11; ++i) {
+//                //            vLabel[i].setVisible(true);
+//                //        }
+//                //        vInput[0].setVisible(false);
+//                //        vInput[1].setVisible(false);
+//                //        vLabel[11].setVisible(false);
+//                //        vLabel[12].setVisible(false);
+//                //        pvp = false;
+//                //    }
+//                //    else if (index == 2) {
+//                //        turn = true;
+//                //        vChoice[2].setStatus(true);
+//                //        vChoice[3].setStatus(false);
+//                //    }
+//                //    else if (index == 3) {
+//                //        turn = false;
+//                //        vChoice[2].setStatus(false);
+//                //        vChoice[3].setStatus(true);
+//                //    }
+//                //    else {
+//                //        for (int i = 4; i < 8; i++) {
+//                //            if (i != index) {
+//                //                vChoice[i].setStatus(false);
+//                //            }
+//                //            else {
+//                //                vChoice[i].setStatus(true);
+//                //            }
+//                //        }
+//                //        depth = masDepth[index - 4];
+//                //    }
+//                //}
+//                //else if (vInput[0].isPressed(pos)) {
+//                //    vInput[0].onPress();
+//                //    vInput[1].onRelease();
+//                //}
+//                //else if (vInput[1].isPressed(pos)) {
+//                //    vInput[1].onPress();
+//                //    vInput[0].onRelease();
+//                //}
+//                //else if (startB.isPressed(pos)) {
+//                //    if (!pvp/* || pvp && vInput[1].getText().size() && socket.connect(vInput[0].getText(), stoi(vInput[1].getText())) == Socket::Done*/) {
+//                //        win.close();
+//                //        open = true;
+//                //    }
+//                //}
+//                //else if (exitB.isPressed(pos)) {
+//                //    win.close();
+//                //    open = false;
+//                //}
+//            }
+//            else if (event->is<Event::TextEntered>()) {
+//                onChar();
+//                //char key = 'a';//static_cast<char>(event.value.text.scancode);
+//                //vInput[0].onKeyPress(key);
+//                //vInput[1].onKeyPress(key);
+//            }
+//        }
+//        draw();
+//    }
+//}
+
+void TEngineForm::onDraw() const {
+    board.draw(window);
+    exitB.draw(window);
+    flipB.draw(window);
+    analysicsB.draw(window);
+    resultLabel.draw(window);
+    timeLabel.draw(window);
 }
 
-void TEngineForm::draw(int posx, int posy) {
-    win.clear();
-    win.draw(background);
-    board.draw(win, posx, posy);
-    exitB.draw(win);
-    flipB.draw(win);
-    analysicsB.draw(win);
-    resultLabel.draw(win);
-    timeLabel.draw(win);
-    win.display();
-}
-TEngineForm::TEngineForm() : win(VideoMode({ 1200, 900 }), "Russian checkers", Style::Close) {
-
-    win.setIcon(icon);
-    win.setFramerateLimit(150);
-    win.setVerticalSyncEnabled(true);
-
-    background.setSize(Vector2f(win.getSize()));
-    background.setFillColor(Color::White);
+TEngineForm::TEngineForm() : TForm(ENGINE_FORM_SIZE, "Engine Form") {
 
     exitB.setSize(100, 50);
     exitB.setThickness(2);
@@ -413,246 +401,94 @@ TEngineForm::TEngineForm() : win(VideoMode({ 1200, 900 }), "Russian checkers", S
     }
     
 }
-TEngineForm::~TEngineForm() {
-    delete engineThread;
-}
-void TEngineForm::poll() {
 
-    Vector2f LPPos, LRPos;
-    Vector2f pos;
-    draw(0, 0);
+TEngineForm::~TEngineForm() { }
 
-    while (win.isOpen())
-    {
-        pos = Vector2f(Mouse::getPosition(win));
-        while (const std::optional event = win.pollEvent()) {
-            if (event->is<Event::Closed>()) {
-                win.close();
-                //engineThread->wait();
-                open = false;
-            }
-            else if (event->is<Event::MouseButtonPressed>()) {
-                board.capture(pos.x, pos.y);
-                if (exitB.isPressed(pos)) {
-                    win.close();
-                    //engineThread->wait();
-                    open = true;
-                }
-                else if (flipB.isPressed(pos)) {
-                    board.flip();
-                }
-                else if (analysicsB.isPressed(pos)) {
-                    std::unique_ptr<RenderWindow> analysicsWindow{new RenderWindow(VideoMode({ 1300, 900 }), "VOBLA", Style::Close)};
-                    analysicsWindow->setFramerateLimit(150);
-                    analysicsWindow->setVerticalSyncEnabled(true);
+//void TEngineForm::poll() {
+//
+//    Vector2f LPPos, LRPos;
+//    Vector2f pos;
+//    draw();
+//
+//    while (win.isOpen())
+//    {
+//        pos = Vector2f(Mouse::getPosition(win));
+//        while (const std::optional event = win.pollEvent()) {
+//            if (event->is<Event::Closed>()) {
+//                win.close();
+//                //engineThread->wait();
+//                open = false;
+//            }
+//            else if (event->is<Event::MouseButtonPressed>()) {
+//                board.capture(pos.x, pos.y);
+//                if (exitB.isPressed(pos)) {
+//                    win.close();
+//                    //engineThread->wait();
+//                    open = true;
+//                }
+//                else if (flipB.isPressed(pos)) {
+//                    board.flip();
+//                }
+//                else if (analysicsB.isPressed(pos)) {
+//                    std::unique_ptr<RenderWindow> analysicsWindow{new RenderWindow(VideoMode({ 1300, 900 }), "VOBLA", Style::Close)};
+//                    analysicsWindow->setFramerateLimit(150);
+//                    analysicsWindow->setVerticalSyncEnabled(true);
+//
+//                    std::unique_ptr<TAnalysicsForm> analysicsForm{ new TAnalysicsForm(*analysicsWindow.get(), control.gameMoves)};
+//                    analysicsForm->poll();
+//                }
+//                else if (Mouse::isButtonPressed(Mouse::Button::Left)) {
+//                    LP = true;
+//                    LPPos = pos;
+//                }
+//            }
+//            else if (event->is<Event::MouseButtonReleased>()) {
+//                board.uncatch();
+//                if (LP && Mouse::isButtonPressed(Mouse::Button::Left)) {
+//                    LR = true;
+//                    LRPos = pos;
+//                }
+//            }
+//            else if (Keyboard::isKeyPressed(Keyboard::Key::Up)) {
+//                control.getCurr();
+//                board.setField(control.field);
+//            }
+//            else if (Keyboard::isKeyPressed(Keyboard::Key::Left)) {
+//                control.getPrev();
+//                board.setField(control.field);
+//            }
+//            else if (Keyboard::isKeyPressed(Keyboard::Key::Right)) {
+//                control.getNext();
+//                board.setField(control.field);
+//            }
+//            if (LP && LR) {
+//                LP = false;
+//                LR = false;
+//
+//                if (turn == control.turn) {
+//                    mytype coord[4];
+//                    board.getCoord(LPPos, LRPos, coord);
+//                    MOVE_RESULT result = control.PlayerMove(coord[0], coord[1], coord[2], coord[3]);
+//                    if (result != INVALID_COORD) {
+//                        board.setField(control.field);
+//                        if (result == SUCCESS) {
+//                            //engineThread->launch();
+//                        }
+//                        else if (result == WIN) {
+//                            resultLabel.setText("You win");
+//                            resultLabel.setVisible(true);
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//        board.setTilePos({pos.x, pos.y});
+//        draw(pos.x, pos.y);
+//    }
+//    //engineThread->terminate();
+//}
 
-                    std::unique_ptr<TAnalysicsForm> analysicsForm{ new TAnalysicsForm(*analysicsWindow.get(), control.gameMoves)};
-                    analysicsForm->poll();
-                }
-                else if (Mouse::isButtonPressed(Mouse::Button::Left)) {
-                    LP = true;
-                    LPPos = pos;
-                }
-            }
-            else if (event->is<Event::MouseButtonReleased>()) {
-                board.uncatch();
-                if (LP && Mouse::isButtonPressed(Mouse::Button::Left)) {
-                    LR = true;
-                    LRPos = pos;
-                }
-            }
-            else if (Keyboard::isKeyPressed(Keyboard::Key::Up)) {
-                control.getCurr();
-                board.setField(control.field);
-            }
-            else if (Keyboard::isKeyPressed(Keyboard::Key::Left)) {
-                control.getPrev();
-                board.setField(control.field);
-            }
-            else if (Keyboard::isKeyPressed(Keyboard::Key::Right)) {
-                control.getNext();
-                board.setField(control.field);
-            }
-            if (LP && LR) {
-                LP = false;
-                LR = false;
-
-                if (turn == control.turn) {
-                    mytype coord[4];
-                    board.getCoord(LPPos, LRPos, coord);
-                    MOVE_RESULT result = control.PlayerMove(coord[0], coord[1], coord[2], coord[3]);
-                    if (result != INVALID_COORD) {
-                        board.setField(control.field);
-                        if (result == SUCCESS) {
-                            //engineThread->launch();
-                        }
-                        else if (result == WIN) {
-                            resultLabel.setText("You win");
-                            resultLabel.setVisible(true);
-                        }
-                    }
-                }
-            }
-        }
-        draw(pos.x, pos.y);
-    }
-    //engineThread->terminate();
-}
-void TEngineForm::engineMove() {
-    auto start = std::chrono::high_resolution_clock::now();
-
-    MOVE_RESULT result;
-    do {
-        result = control.EngineMove(depth);
-        board.setField(control.field);
-    } while (result == ONE_MORE);
-    if (result == WIN) {
-        resultLabel.setText("You lose");
-        resultLabel.setVisible(true);
-    }
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    std::string s = "Time: " + std::to_string(duration) + " ms\n";
-    {
-        std::lock_guard<std::mutex> lock(labelMutex);
-        timeLabel.setText(s);
-    }
-}
-
-void TPvpForm::sendMove(mytype x1, mytype y1, mytype x2, mytype y2) {
-    if (CheckCoord(x1, y1) && CheckCoord(x2, y2)) {
-        Packet packet;
-        packet << (uint8_t)MOVEREQ << x1 << y1 << x2 << y2;
-        /*socket.send(packet);*/
-    }
-}
-void TPvpForm::resign() {
-    Packet packet;
-    packet << (uint8_t)RESIGNREQ;
-    /*socket.send(packet);*/
-}
-void TPvpForm::offerdraw() {
-    Packet packet;
-    packet << (uint8_t)DRAWREQ;
-    /*socket.send(packet);*/
-}
-void TPvpForm::receive() {
-    Packet packet;
-    uint8_t type;
-    int time;
-    while (/*socket.receive(packet) == Socket::Done*/true) {
-        Vector2f pos = Vector2f(Mouse::getPosition(win));
-        packet >> type;
-        switch (type) {
-        case INIT:
-            packet >> turn >> time;
-            if (!turn) {
-                board.flip();
-            }
-            wait.setVisible(false);
-            clock1.update(time);
-            clock2.update(time);
-            clock1.start();
-            clock2.start();
-            if (turn) {
-                clock2.pause();
-            }
-            else {
-                clock1.pause();
-            }
-            break;
-        case MOVEREQ:
-            mytype x1, y1, x2, y2;
-            uint8_t result;
-            packet >> result >> x1 >> y1 >> x2 >> y2;
-            
-            if (result == DRAW) {
-                lDraw.setVisible(true);
-            }
-            else if (result == INVALID_COORD) {
-                vMoves.clear();
-                board.redReset();
-            }
-            else if (result == LOSE) {
-                control.PlayerMove(x1, y1, x2, y2);
-                lLose.setVisible(true);
-            }
-            else if (result == ONE_MORE || result == SUCCESS) {
-                board.redReset();
-                control.PlayerMove(x1, y1, x2, y2);
-            }
-            else if (result == WIN) {
-                control.PlayerMove(x1, y1, x2, y2);
-                lWin.setVisible(true);
-            }
-
-            board.setField(control.field);
-
-            if (control.turn == turn) {
-                clock1.release();
-                clock2.pause();
-            }
-            else {
-                clock2.release();
-                clock1.pause();
-            }
-            if (result == WIN || result == LOSE || result == DRAW) {
-                vMoves.clear();
-                board.redReset();
-                clock1.stop();
-                clock2.stop();
-                analysicsB.setVisible(true);
-                exitB.setVisible(true);
-            }
-            break;
-        case DRAWREQ:
-            drawB.setColor(Color::Red);
-            drawB.setText("Accept");
-        }
-        if (type != DRAWREQ) {
-            drawB.setColor(Color::Green);
-            drawB.setText("Offer a draw");
-        }
-        for (const int temp : vMoves) {
-            board.redSet(temp / 1000, (temp / 100) % 10, (temp / 10) % 10, temp % 10);
-        }
-        if (control.turn == turn && vMoves.size()) {
-            int temp = vMoves[0];
-            sendMove(temp / 1000, (temp / 100) % 10, (temp / 10) % 10, temp % 10);
-            vMoves.erase(vMoves.begin());
-        }
-    }
-}
-void TPvpForm::draw(int x, int y) {
-    win.clear();
-    win.draw(background);
-    board.draw(win, x, y);
-    exitB.draw(win);
-    flipB.draw(win);
-    analysicsB.draw(win);
-    resignB.draw(win);
-    drawB.draw(win);
-    clock1.draw(win);
-    clock2.draw(win);
-    wait.draw(win);
-    lLose.draw(win);
-    lWin.draw(win);
-    lDraw.draw(win);
-    win.display();
-}
-void TPvpForm::loading() {
-    while (!connected) {
-        wait.setNext();
-        sleep(milliseconds(300));
-    }
-}
-TPvpForm::TPvpForm() : win(VideoMode({ 1200, 900 }), "Russian checkers", Style::Close) {
-    win.setIcon(icon);
-    win.setFramerateLimit(60);
-    win.setVerticalSyncEnabled(true);
-
-    background.setSize(Vector2f(win.getSize()));
-    background.setFillColor(Color::White);
+TPvpForm::TPvpForm() : TForm(PVP_FORM_SIZE, "PvP form") {
 
     exitB.setSize(150, 60);
     exitB.setThickness(2);
@@ -725,96 +561,241 @@ TPvpForm::TPvpForm() : win(VideoMode({ 1200, 900 }), "Russian checkers", Style::
     resignB.setThickness(2);
     resignB.setColor(Color::Green);
 
-    draw(0, 0);
+    draw();
 }
-void TPvpForm::poll() {
 
-    Vector2f LPPos, LRPos;
+TPvpForm::~TPvpForm() {
 
-    std::thread loadingThread(&TPvpForm::loading, this);
+}
 
-    std::thread receiveTurn(&TPvpForm::receive, this);
+void TEngineForm::engineMove() {
+    auto start = std::chrono::high_resolution_clock::now();
 
-    while (win.isOpen())
-    {
-        Vector2f pos = Vector2f(Mouse::getPosition(win));
-
-        while (const std::optional event = win.pollEvent())
-        {
-            if (event->is<Event::Closed>()) {
-                win.close();
-                open = false;
-            }
-            else if (event->is<Event::MouseButtonPressed>()) {
-                board.capture(pos.x, pos.y);
-                if (exitB.isPressed(pos)) {
-                    win.close();
-                    open = true;
-                }
-                else if (flipB.isPressed(pos)) {
-                    board.flip();
-                }
-                else if (analysicsB.isPressed(pos)) {
-                    RenderWindow start(VideoMode({ 1300, 900 }), "VOBLA", Style::Close);
-                    start.setFramerateLimit(60);
-                    start.setVerticalSyncEnabled(true);
-
-                    TAnalysicsForm form1(start, control.gameMoves);
-                    form1.poll();
-                }
-                else if (resignB.isPressed(pos)) {
-                    resign();
-                }
-                else if (drawB.isPressed(pos)) {
-                    offerdraw();
-                }
-                else {
-                    if (Mouse::isButtonPressed(Mouse::Button::Left)) {
-                        LP = true;
-                        LPPos = pos;
-                    }
-                }
-            }
-            else if (event->is<Event::MouseButtonReleased>()) {
-                board.uncatch();
-                if (LP) {
-                    Vector2f pos = Vector2f(Mouse::getPosition(win));
-                    if (Mouse::isButtonPressed(Mouse::Button::Left)) {
-                        LR = true;
-                        LRPos = pos;
-                    }
-                }
-            }
-            else if (Keyboard::isKeyPressed(Keyboard::Key::Up)) {
-                control.getCurr();
-                board.setField(control.field);
-            }
-            else if (Keyboard::isKeyPressed(Keyboard::Key::Left)) {
-                vMoves.clear();
-                board.redReset();
-                control.getPrev();
-                board.setField(control.field);
-            }
-            else if (Keyboard::isKeyPressed(Keyboard::Key::Right)) {
-                control.getNext();
-                board.setField(control.field);
-            }
-            if (LP && LR && control.curr == control.head) {
-                LP = false;
-                LR = false;
-
-                mytype coord[4];
-                board.getCoord(LPPos, LRPos, coord);
-                sendMove(coord[0], coord[1], coord[2], coord[3]);
-            }
-        }
-        draw(pos.x, pos.y);
+    MOVE_RESULT result;
+    do {
+        result = control.EngineMove(depth);
+        board.setField(control.field);
+    } while (result == ONE_MORE);
+    if (result == WIN) {
+        resultLabel.setText("You lose");
+        resultLabel.setVisible(true);
     }
-
-    clock1.stop();
-    clock2.stop();
-    //receiveTurn.terminate();
-    //loadingThread.terminate();
-    /*socket.disconnect();
-    listener.close();*/
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    std::string s = "Time: " + std::to_string(duration) + " ms\n";
+    {
+        std::lock_guard<std::mutex> lock(labelMutex);
+        timeLabel.setText(s);
+    }
 }
+
+void TPvpForm::sendMove(mytype x1, mytype y1, mytype x2, mytype y2) {
+    if (CheckCoord(x1, y1) && CheckCoord(x2, y2)) {
+        Packet packet;
+        packet << (uint8_t)MOVEREQ << x1 << y1 << x2 << y2;
+        /*socket.send(packet);*/
+    }
+}
+
+void TPvpForm::resign() {
+    Packet packet;
+    packet << (uint8_t)RESIGNREQ;
+    /*socket.send(packet);*/
+}
+
+void TPvpForm::offerdraw() {
+    Packet packet;
+    packet << (uint8_t)DRAWREQ;
+    /*socket.send(packet);*/
+}
+
+void TPvpForm::receive() {
+    Packet packet;
+    uint8_t type;
+    int time;
+    while (/*socket.receive(packet) == Socket::Done*/true) {
+        Vector2f pos = Vector2f(Mouse::getPosition(window));
+        packet >> type;
+        switch (type) {
+        case INIT:
+            packet >> turn >> time;
+            if (!turn) {
+                board.flip();
+            }
+            wait.setVisible(false);
+            clock1.update(time);
+            clock2.update(time);
+            clock1.start();
+            clock2.start();
+            if (turn) {
+                clock2.pause();
+            }
+            else {
+                clock1.pause();
+            }
+            break;
+        case MOVEREQ:
+            mytype x1, y1, x2, y2;
+            uint8_t result;
+            packet >> result >> x1 >> y1 >> x2 >> y2;
+            
+            if (result == DRAW) {
+                lDraw.setVisible(true);
+            }
+            else if (result == INVALID_COORD) {
+                vMoves.clear();
+            }
+            else if (result == LOSE) {
+                control.PlayerMove(x1, y1, x2, y2);
+                lLose.setVisible(true);
+            }
+            else if (result == ONE_MORE || result == SUCCESS) {
+                control.PlayerMove(x1, y1, x2, y2);
+            }
+            else if (result == WIN) {
+                control.PlayerMove(x1, y1, x2, y2);
+                lWin.setVisible(true);
+            }
+
+            board.setField(control.field);
+
+            if (control.turn == turn) {
+                clock1.release();
+                clock2.pause();
+            }
+            else {
+                clock2.release();
+                clock1.pause();
+            }
+            if (result == WIN || result == LOSE || result == DRAW) {
+                vMoves.clear();
+                clock1.stop();
+                clock2.stop();
+                analysicsB.setVisible(true);
+                exitB.setVisible(true);
+            }
+            break;
+        case DRAWREQ:
+            drawB.setColor(Color::Red);
+            drawB.setText("Accept");
+        }
+        if (type != DRAWREQ) {
+            drawB.setColor(Color::Green);
+            drawB.setText("Offer a draw");
+        }
+        if (control.turn == turn && vMoves.size()) {
+            int temp = vMoves[0];
+            sendMove(temp / 1000, (temp / 100) % 10, (temp / 10) % 10, temp % 10);
+            vMoves.erase(vMoves.begin());
+        }
+    }
+}
+
+void TPvpForm::onDraw() const {
+    board.draw(window);
+    exitB.draw(window);
+    flipB.draw(window);
+    analysicsB.draw(window);
+    resignB.draw(window);
+    drawB.draw(window);
+    clock1.draw(window);
+    clock2.draw(window);
+    wait.draw(window);
+    lLose.draw(window);
+    lWin.draw(window);
+    lDraw.draw(window);
+}
+
+void TPvpForm::loading() {
+    while (!connected) {
+        wait.setNext();
+        sleep(milliseconds(300));   // condition variable
+    }
+}
+
+//void TPvpForm::poll() {
+//
+//    Vector2f LPPos, LRPos;
+//
+//    std::thread loadingThread(&TPvpForm::loading, this);
+//
+//    std::thread receiveTurn(&TPvpForm::receive, this);
+//
+//    while (win.isOpen())
+//    {
+//        Vector2f pos = Vector2f(Mouse::getPosition(win));
+//
+//        while (const std::optional event = win.pollEvent())
+//        {
+//            if (event->is<Event::Closed>()) {
+//                win.close();
+//                open = false;
+//            }
+//            else if (event->is<Event::MouseButtonPressed>()) {
+//                board.capture(pos.x, pos.y);
+//                if (exitB.isPressed(pos)) {
+//                    win.close();
+//                    open = true;
+//                }
+//                else if (flipB.isPressed(pos)) {
+//                    board.flip();
+//                }
+//                else if (analysicsB.isPressed(pos)) {
+//                    TAnalysicsForm form1(control.gameMoves);
+//                    form1.poll();
+//                }
+//                else if (resignB.isPressed(pos)) {
+//                    resign();
+//                }
+//                else if (drawB.isPressed(pos)) {
+//                    offerdraw();
+//                }
+//                else {
+//                    if (Mouse::isButtonPressed(Mouse::Button::Left)) {
+//                        LP = true;
+//                        LPPos = pos;
+//                    }
+//                }
+//            }
+//            else if (event->is<Event::MouseButtonReleased>()) {
+//                board.uncatch();
+//                if (LP) {
+//                    Vector2f pos = Vector2f(Mouse::getPosition(win));
+//                    if (Mouse::isButtonPressed(Mouse::Button::Left)) {
+//                        LR = true;
+//                        LRPos = pos;
+//                    }
+//                }
+//            }
+//            else if (Keyboard::isKeyPressed(Keyboard::Key::Up)) {
+//                control.getCurr();
+//                board.setField(control.field);
+//            }
+//            else if (Keyboard::isKeyPressed(Keyboard::Key::Left)) {
+//                vMoves.clear();
+//                control.getPrev();
+//                board.setField(control.field);
+//            }
+//            else if (Keyboard::isKeyPressed(Keyboard::Key::Right)) {
+//                control.getNext();
+//                board.setField(control.field);
+//            }
+//            if (LP && LR && control.curr == control.head) {
+//                LP = false;
+//                LR = false;
+//
+//                mytype coord[4];
+//                board.getCoord(LPPos, LRPos, coord);
+//                sendMove(coord[0], coord[1], coord[2], coord[3]);
+//            }
+//        }
+//        draw();
+//    }
+//
+//    clock1.stop();
+//    clock2.stop();
+//    //receiveTurn.terminate();
+//    //loadingThread.terminate();
+//    /*socket.disconnect();
+//    listener.close();*/
+//}

@@ -1,10 +1,7 @@
 #include "controls.h"
 
-void TBoard::redReset() {
-    std::for_each(red.begin(), red.end(), [](auto& row) {
-        std::fill(row.begin(), row.end(), false);
-        });
-}
+using std::string;
+
 TBoard::TBoard() : TObject(){
 
     x1 = x2 = y1 = y2 = 0;
@@ -18,9 +15,11 @@ TBoard::TBoard() : TObject(){
     inac.loadFromFile("Image/inaccurasy.png");
     isCaptured = false;
 }
+
 void TBoard::setPos(int x0, int y0) {
     TObject::setPos(x0, y0);
 }
+
 void TBoard::setField(TField& toSet) {
     memcpy(field, toSet, 64);
     if (flipped) {
@@ -29,7 +28,8 @@ void TBoard::setField(TField& toSet) {
     }
     isCaptured = false;
 }
-void TBoard::getCoord(Vector2f start, Vector2f end, mytype* coord) {
+
+void TBoard::getCoord(Vector2f start, Vector2f end, mytype coord[]) {
 
     mytype x1 = (start.x - x) / tileSize;
     mytype y1 = (start.y - y) / tileSize;
@@ -52,50 +52,21 @@ void TBoard::getCoord(Vector2f start, Vector2f end, mytype* coord) {
     coord[3] = y2;
 
 }
-void TBoard::redSet(mytype x1, mytype y1, mytype x2, mytype y2) {
-    if (flipped) {
-        x1 = 7 - x1;
-        x2 = 7 - x2;
-        y1 = 7 - y1;
-        y2 = 7 - y2;
-    }
 
-    if ((x1 >= 0) && (y1 >= 0) && (x1 < 8) && (y1 < 8) && ((x1 + y1) % 2 == 0)) {
-        red[x1][y1] = true;
-    }
-    if ((x2 >= 0) && (y2 >= 0) && (x2 < 8) && (y2 < 8) && ((x2 + y2) % 2 == 0)) {
-        red[x2][y2] = true;
-    }
-}
-void TBoard::redReset(mytype x1, mytype y1, mytype x2, mytype y2) {
-    if (flipped) {
-        x1 = 7 - x1;
-        x2 = 7 - x2;
-        y1 = 7 - y1;
-        y2 = 7 - y2;
-    }
-
-    if ((x1 >= 0) && (y1 >= 0) && (x1 < 8) && (y1 < 8) && ((x1 + y1) % 2 == 0)) {
-        red[x1][y1] = false;
-    }
-    if ((x2 >= 0) && (y2 >= 0) && (x2 < 8) && (y2 < 8) && ((x2 + y2) % 2 == 0)) {
-        red[x2][y2] = false;
-    }
-}
 void TBoard::flip() {
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 8; j++) {
-            std::swap(field[i][j], field[7 - i][7 - j]);
-        }
-    }
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 8; j++) {
-            std::swap(red[i][j], red[7 - i][7 - j]);
+            std::swap(field[i][j], field[7 - i][7 - j]);    //Make std::xxxx();
         }
     }
     flipped = !flipped;
 }
-void TBoard::draw(RenderWindow& win, int posx, int posy) {
+
+void TBoard::draw(RenderWindow& win) const {
+
+    int posx = 0;
+    int posy = 0;    //Make class fields
+
     RectangleShape cell(Vector2f(tileSize, tileSize));
     CircleShape checker(tileSize / 2 - 10);
     CircleShape in(tileSize / 4 - 5);
@@ -103,16 +74,11 @@ void TBoard::draw(RenderWindow& win, int posx, int posy) {
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
 
-            if (red[i][j]) {
-                cell.setFillColor(Color(212, 109, 81));
+            if ((i + j) % 2 == 1) {
+                cell.setFillColor(Color(233, 237, 204));
             }
             else {
-                if ((i + j) % 2 == 1) {
-                    cell.setFillColor(Color(233, 237, 204));
-                }
-                else {
-                    cell.setFillColor(Color(119, 153, 84));
-                }
+                cell.setFillColor(Color(119, 153, 84));
             }
 
             cell.setPosition(Vector2f(x + i * tileSize, y + (7 - j) * tileSize));
@@ -196,6 +162,7 @@ void TBoard::draw(RenderWindow& win, int posx, int posy) {
         }
     }
 }
+
 void TBoard::capture(int posx, int posy) {
     isCaptured = true;
     cx = (posx - x) / tileSize;
@@ -206,9 +173,11 @@ void TBoard::capture(int posx, int posy) {
         isCaptured = true;
     }
 }
+
 void TBoard::uncatch() {
     isCaptured = false;
 }
+
 void TBoard::setComment(MOVE_STATUS tcomment, mytype tx1, mytype ty1, mytype tx2, mytype ty2) {
     x1 = tx1;
     y1 = ty1;
@@ -224,32 +193,41 @@ TLabel::TLabel() : text(font) {
     text.setFillColor(Color::Black);
     text.setPosition(Vector2f( 0, 0 ));
 }
+
 void TLabel::setText(std::string txt) {
     text.setString(txt);
 }
+
 void TLabel::setPos(int x, int y) {
     text.setPosition(Vector2f( x, y ));
 }
-void TLabel::draw(RenderWindow& win) {
+
+void TLabel::draw(RenderWindow& win) const {
     if (visible) {
         win.draw(text);
     }
 }
+
 void TLabel::setVisible(bool toSet) {
     visible = toSet;
 }
+
 void TLabel::setThickness(int thick) {
     text.setOutlineThickness(thick);
 }
+
 void TLabel::setFontSize(int fontSize) {
     text.setCharacterSize(fontSize);
 }
+
 void TLabel::setColor(Color color) {
     text.setFillColor(color);
 }
+
 void TLabel::setOutlineColor(Color color) {
     text.setOutlineColor(color);
 }
+
 
 TObject::TObject() {
     x = 0;
@@ -262,6 +240,7 @@ TObject::TObject() {
     background.setOutlineColor(Color(30, 30, 30));
     visible = true;
 }
+
 void TObject::setPos(int tx, int ty) {
     x = tx;
     y = ty;
@@ -278,13 +257,13 @@ void TObject::setColor(Color color) {
 void TObject::setThickness(int thickness) {
     background.setOutlineThickness(thickness);
 }
-void TObject::draw(RenderWindow& win) {
+void TObject::draw(RenderWindow& win) const {
     if (visible) {
         win.draw(background);
     }
 }
-void TObject::setVisible(bool toSet) {
-    visible = toSet;
+void TObject::setVisible(bool _visible) {
+    visible = _visible;
 }
 
 bool TClickable::isPressed(Vector2f& pos) {
@@ -321,7 +300,7 @@ void TButton::onPress() {
 void TButton::onRelease() {
     background.setFillColor(Color::Green);
 }
-void TButton::draw(RenderWindow& win) {
+void TButton::draw(RenderWindow& win) const {
     if (visible) {
         TObject::draw(win);
         win.draw(text);
@@ -348,7 +327,7 @@ void TChoice::onPress() {
     isSelected = !isSelected;
 }
 void TChoice::onRelease() { }
-void TChoice::draw(RenderWindow& win) {
+void TChoice::draw(RenderWindow& win) const {
     if (visible) {
         TObject::draw(win);
         if (isSelected) {
@@ -387,7 +366,7 @@ void TBar::setFirstColor(Color color) {
 void TBar::setSecondColor(Color color) {
     second.setFillColor(color);
 }
-void TBar::draw(RenderWindow& win) {
+void TBar::draw(RenderWindow& win) const {
     if (visible) {
         TObject::draw(win);
         win.draw(first);
@@ -708,7 +687,7 @@ void TCommentSection::setValues(std::vector<MoveData>& vdata) {
         vText[19].setString(std::to_string(black * 100 / sumblack) + "." + std::to_string((black * 1000 / sumblack) % 10) + "%");
     }
 }
-void TCommentSection::draw(RenderWindow& win) {
+void TCommentSection::draw(RenderWindow& win) const {
     TObject::draw(win);
     for (auto& elem : vText) {
         win.draw(elem);
@@ -719,7 +698,7 @@ void GameController::getData(MoveData& source) {
     assess = source.assess;
     memcpy(field, source.field, 64);
     type = source.type;
-    vector = source.vector;
+    vec = source.vec;
     x = source.x;
     y = source.y;
 }
@@ -731,11 +710,11 @@ void GameController::setData(MoveData& dest) {
     memcpy(dest.oldfield, field, 64);
     dest.turn = turn;
     dest.type = type;
-    dest.vector = vector;
+    dest.vec = vec;
 }
 GameController::GameController() {
     type = MOVE;
-    x = y = vector = 0;
+    x = y = vec = 0;
     turn = true;
     curr = 0;
     head = 0;
@@ -790,10 +769,7 @@ MOVE_RESULT GameController::EngineMove(mytype depth) {
         MOVE_RESULT result = engine.EngineMove(data, depth);
         if (result == ONE_MORE || result == SUCCESS || result == WIN) {
             memcpy(temp.field, data.field, 64);
-            temp.coord[0] = data.coord[0];
-            temp.coord[1] = data.coord[1];
-            temp.coord[2] = data.coord[2];
-            temp.coord[3] = data.coord[3];
+            memcpy(temp.coord, data.coord, 4);
             gameMoves.push_back(temp);
             getData(data);
             if (result == SUCCESS) {
@@ -838,7 +814,7 @@ void AnalysicsController::getData(MoveData& source) {
     assess = source.assess;
     memcpy(field, source.field, 64);
     type = source.type;
-    vector = source.vector;
+    vec = source.vec;
     x = source.x;
     y = source.y;
     x1 = source.coord[0];
@@ -852,7 +828,7 @@ AnalysicsController::AnalysicsController() {
     x1 = x2 = y1 = y2 = 0;
     comment = FORCED;
     type = MOVE;
-    x = y = vector = 0;
+    x = y = vec = 0;
     turn = true;
     curr = 0;
     head = 0;
@@ -896,7 +872,10 @@ TInput::TInput() : TClickable(), text(font) {
     isSelected = false;
 }
 bool TInput::checkchar(char toCheck) {
-    return (toCheck >= '0') && (toCheck <= '9') || (toCheck >= 'a') && (toCheck <= 'z') || (toCheck >= 'A') && (toCheck <= 'Z') || (toCheck == '_');
+    return (toCheck >= '0') && (toCheck <= '9') || 
+        (toCheck >= 'a') && (toCheck <= 'z') || 
+        (toCheck >= 'A') && (toCheck <= 'Z') || 
+        (toCheck == '_');
 }
 void TInput::onPress() {
     isSelected = visible;
@@ -904,7 +883,7 @@ void TInput::onPress() {
 void TInput::onKeyPress(char inputChar) {
 
     if (isSelected) {
-        std::string temp = text.getString();
+        string temp = text.getString();
 
         if (letters && inputChar >= 0 && inputChar <= 25) {
             if (temp.size() < limit) {
@@ -931,7 +910,7 @@ void TInput::onKeyPress(char inputChar) {
 void TInput::onRelease() {
     isSelected = false;
 }
-void TInput::draw(RenderWindow& win) {
+void TInput::draw(RenderWindow& win) const {
     if (visible) {
         TClickable::draw(win);
         win.draw(text);
@@ -982,7 +961,7 @@ void TWait::setPos() {
     mas[4].setPosition(Vector2f(x, y + 3 * radius / 2));
     mas[5].setPosition(Vector2f(x, y + radius / 2));
 }
-void TWait::draw(RenderWindow& win) {
+void TWait::draw(RenderWindow& win) const {
     if (visible) {
         for (int i = 0; i < 6; ++i) {
             win.draw(mas[i]);
@@ -1013,7 +992,7 @@ TClock::TClock() : TObject(), text(font) {
     text.setString(getStringTime(0));
     text.setFillColor(Color::Black);
     text.setCharacterSize(32);
-    thread = new std::thread(&TClock::tictac, this);
+    //thread = new std::thread(&TClock::tictac, this);
     setSize(150, 50);
 }
 void TClock::update(int seconds) {
@@ -1037,7 +1016,7 @@ void TClock::release() {
     background.setFillColor(Color::White);
     yourTurn = true;
 }
-void TClock::draw(RenderWindow& win) {
+void TClock::draw(RenderWindow& win) const {
     TObject::draw(win);
     win.draw(text);
 }

@@ -13,16 +13,16 @@ enum MOVE_STATUS {
     BLUNDER,
 };
 
-typedef struct _MoveData {
+struct MoveData {
     TField field;
     TField oldfield;
     MOVE_TYPE type;
-    mytype x, y, vector;
+    mytype x, y, vec;
     mytype coord[4];
     float assess;
     bool turn;
     MOVE_STATUS comment;
-} MoveData;
+};
 
 enum MOVE_RESULT {
     INVALID_COORD,

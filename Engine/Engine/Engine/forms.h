@@ -3,21 +3,108 @@
 #include "controls.h"
 #include <array>
 #include <mutex>
+#include <vector>
+#include <memory>
 
 extern Font font;
 extern Image icon;
 
-extern bool open;
-extern bool turn;
-extern bool pvp;
-extern int depth;
+#define CURRENT_FPS 150
+
+static bool turn = true;
+static bool mode = false;
+static int depth = 12;
 //extern TcpSocket socket;
 //extern TcpListener listener;
 
-class TAnalysicsForm {
+using std::vector, std::array, std::thread, std::mutex, std::unique_ptr, std::optional, std::string;
 
+class TForm {
+public:
+    TForm(Vector2u windowSize, const string& title)
+        : window(VideoMode(windowSize), title, Style::Close) {
+
+        window.setFramerateLimit(CURRENT_FPS);
+        window.setVerticalSyncEnabled(true);
+
+        background.setSize(Vector2f(windowSize));
+        background.setFillColor(Color::White);
+    }
+
+    virtual ~TForm() { }
+
+    void poll() {
+
+        while (window.isOpen())
+        {
+            while (const optional event = window.pollEvent())
+            {
+                if (event->is<Event::Closed>()) {
+                    onClose();
+                }
+                else if (event->is<Event::MouseButtonPressed>()) {
+                    auto mousePos = Mouse::getPosition();
+                    onLeftButtonClick(mousePos);
+                }
+                else if (event->is<Event::MouseButtonReleased>()) {
+                    auto mousePos = Mouse::getPosition();
+                    onLeftButtonRelease(mousePos);
+                }
+                else if (event->is<Event::KeyPressed>()) {
+                    //onKeyDown();
+                }
+                else if (event->is<Event::KeyReleased>()) {
+
+                }
+            }
+            draw();
+        }
+    }
+    void draw() {
+        window.clear();
+        window.draw(background);
+        onDraw();
+        window.display();
+    }
+
+protected:
+    mutable RenderWindow window;
     RectangleShape background;
-    RenderWindow& win;
+    
+    virtual void onDraw() const {
+    
+    }
+
+    virtual void onClose() {
+        window.close();
+    }
+
+    virtual void onKeyDown(Keyboard::Key key) {
+
+    }
+
+    virtual void onLeftButtonClick(Vector2i position) {
+
+    }
+
+    virtual void onLeftButtonRelease(Vector2i position) {
+
+    }
+
+    virtual void onChar(char symbol) {
+
+    }
+};
+
+
+class TAnalysicsForm final : public TForm {
+public:
+    TAnalysicsForm(vector<MoveData>& data);
+
+protected:
+    void onDraw() const override;
+
+private:
     TButton exitB;
     TBoard board;
     TAssessBar bar;
@@ -26,61 +113,64 @@ class TAnalysicsForm {
     AnalysicsController control;
     TCommentSection section;
 
-    void drawprogress();
-    void draw();
-public:
-    TAnalysicsForm(RenderWindow& renwin, std::vector<MoveData>& data);
-    void poll();
 };
 
-class TStartForm {
-
-    RenderWindow win;
-    RectangleShape background;
-    std::vector<TLabel> vLabel;
-    std::vector<TChoice> vChoice;
-    std::vector<TInput> vInput;
-    TButton startB, exitB;
-    const std::array<int, 4> masDepth =  { 4, 8, 10, 12 };
-
-    void draw();
+class TStartForm final : public TForm {
 public:
     TStartForm();
-    void poll();
+    ~TStartForm();
+
+protected:
+    void onDraw() const override;
+
+private:
+    vector<TLabel> vLabel;
+    vector<TChoice> vChoice;
+    vector<TInput> vInput;
+    TButton startB, exitB;
+    const array<int, 4> masDepth =  { 4, 8, 10, 12 };
 };
 
-class TEngineForm {
+class TEngineForm final: public TForm {
+public:
+    TEngineForm();
+    ~TEngineForm();
+
+protected:
+    void onDraw() const override;
+
+private:
     bool LP = false;
     bool LR = false;
 
-    RenderWindow win;
-    RectangleShape background;
     TButton exitB, flipB, analysicsB;
     TLabel resultLabel, timeLabel;
     TBoard board;
     GameController control;
-    std::thread* engineThread;
-    std::mutex labelMutex;
+    unique_ptr<thread> engineThread;
+    mutex labelMutex;
 
-    void draw(int posx, int posy);
     void engineMove();
-public:
-    TEngineForm();
-    ~TEngineForm();
-    void poll();
 };
 
-class TPvpForm {
-    bool turn = true;
-    bool LP = false;
-    bool LR = false;
-    bool connected = false;
+class TPvpForm final : public TForm {
+public:
+    TPvpForm();
+    ~TPvpForm();
 
-    std::vector<int> vMoves;
+protected:
+    void onDraw() const override;
+
+
+private:
+    bool turn{ true };
+    bool LP{ false };
+    bool LR{ false };
+    bool connected{ false };
+
+    vector<int> vMoves;
 
     TClock clock1, clock2;
-    RectangleShape background;
-    RenderWindow win;
     TButton exitB, flipB, analysicsB, drawB, resignB;
     TBoard board;
     TWait wait;
@@ -98,9 +188,5 @@ class TPvpForm {
     void offerdraw();
     void sendMove(mytype x1, mytype y1, mytype x2, mytype y2);
     void receive();
-    void draw(int posx, int posy);
     void loading();
-public:
-    TPvpForm();
-    void poll();
 };
