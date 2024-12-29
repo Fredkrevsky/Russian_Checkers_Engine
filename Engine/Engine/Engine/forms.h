@@ -60,6 +60,7 @@ public:
             draw();
         }
     }
+
     void draw() {
         window.clear();
         window.draw(background);
@@ -71,29 +72,19 @@ protected:
     mutable RenderWindow window;
     RectangleShape background;
     
-    virtual void onDraw() const {
-    
-    }
+    virtual void onDraw() const { }
 
     virtual void onClose() {
         window.close();
     }
 
-    virtual void onKeyDown(Keyboard::Key key) {
+    virtual void onKeyDown(Keyboard::Key key) { }
 
-    }
+    virtual void onLeftButtonClick(Vector2i position) { }
 
-    virtual void onLeftButtonClick(Vector2i position) {
+    virtual void onLeftButtonRelease(Vector2i position) { }
 
-    }
-
-    virtual void onLeftButtonRelease(Vector2i position) {
-
-    }
-
-    virtual void onChar(char symbol) {
-
-    }
+    virtual void onChar(char symbol) { }
 };
 
 
@@ -112,7 +103,6 @@ private:
     TProgressBar pbar;
     AnalysicsController control;
     TCommentSection section;
-
 };
 
 class TStartForm final : public TForm {

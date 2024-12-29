@@ -14,77 +14,78 @@ extern Font font;
 static const int fontSize = 24;
 static const int tileSize = 100;
 
-using std::vector, std::string, std::thread, std::unique_ptr, std::array;
+using std::vector, std::string, std::thread, std::unique_ptr, std::array,
+std::function;
 
-class TLabel {
-public: 
-    TLabel();
-    void setText(std::string txt);
-    void setPos(int x, int y);
-    void draw(RenderWindow& win) const;
-    void setVisible(bool toSet);
-    void setThickness(int thick);
-    void setFontSize(int fontSize);
-    void setColor(Color color);
-    void setOutlineColor(Color color);
-
-private:
-    Text text;
-    bool visible;
-};
-
-class TObject
-{
+class TObject {
 public:
-    void setVisible(bool toSet);
-    virtual ~TObject() {}
-    virtual void setPos(int tx, int ty);
-    virtual void setSize(int twidth, int theight);
+    void setVisible(bool _visible);
+    virtual void setPosition(Vector2f position);
+    virtual void setSize(Vector2f size);
     void setColor(Color color);
     void setThickness(int thickness);
     virtual void draw(RenderWindow& win) const;
 
 protected:
-    RectangleShape background;
-    int x, y, width, height;
     TObject();
-    bool visible;
+    virtual ~TObject() {};
 
+    RectangleShape background;
+    Vector2f position{}, size{};
+    bool visible{ true };
+};
+
+class TLabel final : public TObject {
+public: 
+    TLabel();
+    TLabel(const string& _caption, const Vector2f _pos, bool _visible = true);
+
+    void setText(string _text);
+    void setPosition(Vector2f position) override;
+    void draw(RenderWindow& win) const override;
+    void setTextThickness(int thick);
+    void setFontSize(int fontSize);
+    void setTextColor(Color color);
+    void setOutlineColor(Color color);
+
+private:
+    Text text;
 };
 
 class TClickable : public TObject {
 public:
-    bool isPressed(Vector2f& pos);
+    bool isPressed(Vector2f pos);
+    void setOnPress(const function<void()>& callback);
     TClickable();
 
 protected:
-    Vector2f pressPos;
-    virtual void onPress() = 0;
-    virtual void onRelease() = 0;
+    virtual void onPress();
+    function<void()> onPressFunction;
 };
 
-class TButton : public TClickable {
+class TButton final : public TClickable {
 public:
     TButton();
-    void setText(std::string toSet);
-    void setPos(int tx, int ty) override;
-    void setSize(int twidth, int theight);
-    void onPress();
+    TButton(const string& _caption, Vector2f _pos, Vector2f _size);
+
+    void setCaption(const string& _caption);
+    void setPosition(Vector2f position) override;
+    void setSize(Vector2f size);
+    void onPress() override;
     void onRelease();
     void draw(RenderWindow& win) const override;
 
 private:
-    Text text;
-    int len;
-    void normText();
+    Text caption;
+    void normCaption();
 };
 
-class TChoice : public TClickable {
+class TChoice final : public TClickable {
 public:
     TChoice();
-    void setPos(int tx, int ty) override;
-    void setSize(int twidth, int theight);
-    void onPress();
+    void setPosition(Vector2f position) override;
+    void setSize(Vector2f position) override;
+    void onPress() override;
     void onRelease();
     void draw(RenderWindow& win) const override;
     void setStatus(bool status);
@@ -104,18 +105,17 @@ public:
     void draw(RenderWindow& win) const override;
 
 protected:
-    RectangleShape first;
-    float value;
-    int posX;
-    RectangleShape second;
+    RectangleShape first, second;
     Text text;
+    float value;
+    float posX;
 };
 
-class TProgressBar : public TBar {
+class TProgressBar final : public TBar {
 public:
     TProgressBar();
-    void setPos(int tx, int ty) override;
-    void setSize(int twidth, int theight) override;
+    void setPosition(Vector2f position) override;
+    void setSize(Vector2f size) override;
     void setValue(float toSet);
 
 private:
@@ -124,11 +124,11 @@ private:
     inline void setString();
 };
 
-class TAssessBar : public TBar {
+class TAssessBar final : public TBar {
 public:
     TAssessBar();
-    void setPos(int tx, int ty) override;
-    void setSize(int twidth, int theight) override;
+    void setPosition(Vector2f position) override;
+    void setSize(Vector2f size) override;
     void setValue(float toSet);
     void flip();
 
@@ -140,11 +140,11 @@ private:
     bool isFlip;
 };
 
-class TCommentSection : TObject{
+class TCommentSection final : TObject{
 public:
     TCommentSection();
-    void setPos(int x0, int y0) override;
-    void setValues(std::vector<MoveData>& vdata);
+    void setPosition(Vector2f position) override;
+    void setValues(vector<MoveData>& vdata);
     void draw(RenderWindow& win) const override;
 
 private:
@@ -152,14 +152,14 @@ private:
     vector<char> values;
 };
 
-class TClock : public TObject {
+class TClock final : public TObject {
 public:
     TClock();
     void update(int seconds);
     void start();
     void pause();
     void draw(RenderWindow& win) const override;
-    void setPos(int tx, int ty) override;
+    void setPosition(Vector2f position) override;
     void release();
     void stop();
 
@@ -173,14 +173,14 @@ private:
     void tictac();
 };
 
-class TBoard : TObject {
+class TBoard final : TObject {
 public:
     void capture(int posx, int posy);
     void uncatch();
     TBoard();
-    void setPos(int x0, int y0) override;
+    void setPosition(Vector2f position) override;
     void setField(TField& toSet);
-    void getCoord(Vector2f start, Vector2f end, mytype* coord);
+    void getCoord(Vector2f start, Vector2f end, mytype coord[]);
     void flip();
     void draw(RenderWindow& win) const override;
     void setComment(MOVE_STATUS comment, mytype x1, mytype y1, mytype x2, mytype y2);
@@ -197,7 +197,7 @@ private:
 
 };
 
-class GameController {
+class GameController final {
 public:
     TField field;
     float assess;
@@ -223,7 +223,7 @@ protected:
 
 };
 
-class AnalysicsController {
+class AnalysicsController final {
 public:
     TField field;
     float assess;
@@ -249,20 +249,20 @@ private:
     void getData(MoveData& source);
 };
 
-class TInput : public TClickable {
+class TInput final : public TClickable {
 public:
-    bool letters = false;
-    bool dot = false;
-    bool numbers = false;
+    bool letters{ false };
+    bool dot{ false };
+    bool numbers{ false };
     TInput();
     void onPress() override;
     void onKeyPress(char pressed);
-    void onRelease() override;
+    void onRelease();
     void draw(RenderWindow& win) const override;
-    void setPos(int x0, int y0) override;
-    void setSize(int w, int h) override;
+    void setPosition(Vector2f position) override;
+    void setSize(Vector2f position) override;
     void setLimit(int lim);
-    std::string getText();
+    string getText();
 
 private:
     bool isSelected;
@@ -271,11 +271,11 @@ private:
     bool checkchar(char toCheck);
 };
 
-class TWait : TObject {
+class TWait final : TObject {
 public:
     TWait();
     void setNext();
-    void setPos(int tx, int ty);
+    void setPosition(Vector2f _position) override;
     void setRadius(int tradius);
     void setVisible(bool toSet);
     void draw(RenderWindow& win) const override;
@@ -283,8 +283,8 @@ public:
 private:
     const float s3{ 1.73205f };
     array<CircleShape, 6> mas;
-    int current = 0;
-    int radius = 100;
+    int current{ 0 };
+    int radius{ 100 };
 
     void setPos();
 };

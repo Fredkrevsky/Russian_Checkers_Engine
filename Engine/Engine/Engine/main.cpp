@@ -4,10 +4,11 @@
 
 //TcpSocket socket;
 //TcpListener listener;
-sf::Font font;
-sf::Image icon;
 
-using std::unique_ptr;
+using sf::Font, sf::Image;
+
+Font font;
+Image icon;
 
 int main()
 {
@@ -19,8 +20,8 @@ int main()
         return 2;
     }
 
-    unique_ptr<TForm> mainForm{new TStartForm()};
-    mainForm->poll();
+    TStartForm mainForm;
+    mainForm.poll();
 
     return 0;
 }

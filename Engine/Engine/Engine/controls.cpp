@@ -1,6 +1,9 @@
 #include "controls.h"
+#include <algorithm>
 
 using std::string;
+
+/// REMOVE STATIC_CAST<INT> FROM FLOAT
 
 TBoard::TBoard() : TObject(){
 
@@ -16,8 +19,8 @@ TBoard::TBoard() : TObject(){
     isCaptured = false;
 }
 
-void TBoard::setPos(int x0, int y0) {
-    TObject::setPos(x0, y0);
+void TBoard::setPosition(Vector2f position) {
+    TObject::setPosition(position);
 }
 
 void TBoard::setField(TField& toSet) {
@@ -31,13 +34,13 @@ void TBoard::setField(TField& toSet) {
 
 void TBoard::getCoord(Vector2f start, Vector2f end, mytype coord[]) {
 
+    const auto& [x, y] = position;
+
     mytype x1 = (start.x - x) / tileSize;
-    mytype y1 = (start.y - y) / tileSize;
-    y1 = 7 - y1;
+    mytype y1 = 7 - (start.y - y) / tileSize;
 
     mytype x2 = (end.x - x) / tileSize;
-    mytype y2 = (end.y - y) / tileSize;
-    y2 = 7 - y2;
+    mytype y2 = 7 - (end.y - y) / tileSize;
 
     if (flipped) {
         x1 = 7 - x1;
@@ -50,7 +53,6 @@ void TBoard::getCoord(Vector2f start, Vector2f end, mytype coord[]) {
     coord[1] = y1;
     coord[2] = x2;
     coord[3] = y2;
-
 }
 
 void TBoard::flip() {
@@ -70,6 +72,8 @@ void TBoard::draw(RenderWindow& win) const {
     RectangleShape cell(Vector2f(tileSize, tileSize));
     CircleShape checker(tileSize / 2 - 10);
     CircleShape in(tileSize / 4 - 5);
+
+    const auto& [x, y] = position;
 
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
@@ -164,10 +168,10 @@ void TBoard::draw(RenderWindow& win) const {
 }
 
 void TBoard::capture(int posx, int posy) {
-    isCaptured = true;
+    const auto& [x, y] = position;
+
     cx = (posx - x) / tileSize;
-    cy = (posy - y) / tileSize;
-    cy = 7 - cy;
+    cy = 7 - (posy - y) / tileSize;
 
     if (cx >= 0 && cx < 8 && cy >= 0 && cy < 8 && (cx + cy) % 2 == 0) {
         isCaptured = true;
@@ -186,20 +190,32 @@ void TBoard::setComment(MOVE_STATUS tcomment, mytype tx1, mytype ty1, mytype tx2
     comment = tcomment;
 }
 
+
 TLabel::TLabel() : text(font) {
     visible = true;
     text.setString("");
     text.setCharacterSize(fontSize);
     text.setFillColor(Color::Black);
-    text.setPosition(Vector2f( 0, 0 ));
+    text.setPosition({ 0, 0 });
+}
+
+TLabel::TLabel(const string& _caption, const Vector2f _position, bool _visible) : text(font) {
+    TObject::setPosition(_position);
+    visible = _visible;
+
+    text.setString(_caption);
+    text.setCharacterSize(fontSize);
+    text.setFillColor(Color::Black);
+    text.setPosition(_position);
 }
 
 void TLabel::setText(std::string txt) {
     text.setString(txt);
 }
 
-void TLabel::setPos(int x, int y) {
-    text.setPosition(Vector2f( x, y ));
+void TLabel::setPosition(Vector2f position) {
+    TObject::setPosition(position);
+    text.setPosition(position);
 }
 
 void TLabel::draw(RenderWindow& win) const {
@@ -208,11 +224,7 @@ void TLabel::draw(RenderWindow& win) const {
     }
 }
 
-void TLabel::setVisible(bool toSet) {
-    visible = toSet;
-}
-
-void TLabel::setThickness(int thick) {
+void TLabel::setTextThickness(int thick) {
     text.setOutlineThickness(thick);
 }
 
@@ -220,7 +232,7 @@ void TLabel::setFontSize(int fontSize) {
     text.setCharacterSize(fontSize);
 }
 
-void TLabel::setColor(Color color) {
+void TLabel::setTextColor(Color color) {
     text.setFillColor(color);
 }
 
@@ -230,10 +242,6 @@ void TLabel::setOutlineColor(Color color) {
 
 
 TObject::TObject() {
-    x = 0;
-    y = 0;
-    width = 0;
-    height = 0;
     background.setFillColor(Color(230, 230, 230));
     background.setPosition(Vector2f( 0, 0 ));
     background.setSize(Vector2f(0, 0));
@@ -241,92 +249,155 @@ TObject::TObject() {
     visible = true;
 }
 
-void TObject::setPos(int tx, int ty) {
-    x = tx;
-    y = ty;
-    background.setPosition(Vector2f(x, y));
+void TObject::setPosition(Vector2f _position) {
+    position = _position;
+    background.setPosition(position);
 }
-void TObject::setSize(int twidth, int theight) {
-    width = twidth;
-    height = theight;
-    background.setSize(Vector2f(width, height));
+
+void TObject::setSize(Vector2f _size) {
+    size = _size;
+    background.setSize(size);
 }
+
 void TObject::setColor(Color color) {
     background.setFillColor(color);
 }
+
 void TObject::setThickness(int thickness) {
     background.setOutlineThickness(thickness);
 }
+
 void TObject::draw(RenderWindow& win) const {
     if (visible) {
         win.draw(background);
     }
 }
+
 void TObject::setVisible(bool _visible) {
     visible = _visible;
 }
 
-bool TClickable::isPressed(Vector2f& pos) {
-    pressPos = pos;
-    return visible && ((pos.x - x) >= 0) && (pos.x - x <= width) && ((pos.y - y) >= 0) && (pos.y - y <= height);
+
+bool TClickable::isPressed(Vector2f mousePosition) {
+    auto& [posx, posy] = mousePosition;
+    auto& [x, y] = position;
+    auto& [width, height] = size;
+
+    return visible && 
+        ((posx - x) >= 0) && 
+        (posx - x <= width) && 
+        ((posy - y) >= 0) && 
+        (posy - y <= height);
 }
+
+void TClickable::setOnPress(const function<void()>& callback) {
+    onPressFunction = callback;
+}
+
 TClickable::TClickable() : TObject() {}
 
-void TButton::normText() {
-    text.setPosition(Vector2f( x + (width - len * fontSize / 2) / 2 + 4, y + (height - fontSize) / 2 - 4 ));
+void TClickable::onPress() {
+    onPressFunction();
 }
-TButton::TButton() : TClickable(), text(font) {
-    len = 0;
-    text.setPosition(Vector2f( 0, 0 ));
-    text.setCharacterSize(fontSize);
-    text.setFillColor(Color::Black);
+
+void TButton::normCaption() {
+    const auto& captionString = caption.getString();
+    const int captionLength = captionString.getSize();
+
+    const auto& [x, y] = position;
+    const auto& [width, height] = size;
+
+    const float newX = x + (width - captionLength * fontSize / 2) / 2 + 4;
+    const float newY = y + (height - fontSize) / 2 - 4;
+    caption.setPosition({ newX, newY });
 }
-void TButton::setText(std::string toSet) {
-    text.setString(toSet);
-    len = toSet.size();
-    normText();
+
+TButton::TButton() : caption(font) {
+    caption.setPosition({0, 0});
+    caption.setCharacterSize(fontSize);
+    caption.setFillColor(Color::Black);
 }
-void TButton::setPos(int tx, int ty) {
-    TObject::setPos(tx, ty);
-    normText();
+
+TButton::TButton(const string& _caption, Vector2f _position, Vector2f _size) : caption(font) {
+    caption.setCharacterSize(fontSize);
+    caption.setFillColor(Color::Black);
+    caption.setString(_caption);
+
+    setPosition(_position);
+    setSize(_size);
 }
-void TButton::setSize(int twidth, int theight) {
-    TObject::setSize(twidth, theight);
-    normText();
+
+void TButton::setCaption(const string& _caption) {
+    caption.setString(_caption);
+    normCaption();
 }
+
+void TButton::setPosition(Vector2f _position) {
+    TObject::setPosition(_position);
+    normCaption();
+}
+
+void TButton::setSize(Vector2f _size) {
+    TObject::setSize(_size);
+    normCaption();
+}
+
 void TButton::onPress() {
     background.setFillColor(Color(50, 170, 50));
 }
+
 void TButton::onRelease() {
     background.setFillColor(Color::Green);
 }
+
 void TButton::draw(RenderWindow& win) const {
     if (visible) {
         TObject::draw(win);
-        win.draw(text);
+        win.draw(caption);
     }
 }
+
 
 TChoice::TChoice() : TClickable() {
     background.setFillColor(Color::White);
     isSelected = false;
-    setSize(20, 20);
+    setSize({ 20, 20 });
     setThickness(2);
     in.setFillColor(Color(30, 30, 30));
 }
-void TChoice::setPos(int tx, int ty) {
-    TObject::setPos(tx, ty);
-    in.setPosition(Vector2f( tx + width / 4, ty + height / 4 ));
+
+void TChoice::setPosition(Vector2f _position) {
+    TObject::setPosition(_position);
+
+    const auto& [x, y] = position;
+    const auto& [width, height] = size;
+
+    const float newX = x + width / 4.f;
+    const float newY = y + height / 4.f;
+    in.setPosition({newX, newY});
 }
-void TChoice::setSize(int twidth, int theight) {
-    TObject::setSize(twidth, theight);
-    in.setPosition(Vector2f( x + twidth / 4, y + theight / 4 ));
-    in.setSize(Vector2f(twidth / 2, theight / 2));
+
+void TChoice::setSize(Vector2f _size) {
+    TObject::setSize(_size);
+
+    const auto& [x, y] = position;
+    const auto& [width, height] = size;
+
+    const float newX = x + width / 4.f;
+    const float newY = y + height / 4.f;
+    const float newWidth = width / 2.f;
+    const float newHeight = height / 2.f;
+
+    in.setPosition({newX, newY});
+    in.setSize({ newWidth, newHeight });
 }
+
 void TChoice::onPress() {
     isSelected = !isSelected;
 }
+
 void TChoice::onRelease() { }
+
 void TChoice::draw(RenderWindow& win) const {
     if (visible) {
         TObject::draw(win);
@@ -335,37 +406,44 @@ void TChoice::draw(RenderWindow& win) const {
         }
     }
 }
+
 void TChoice::setStatus(bool status) {
     isSelected = status;
 }
+
 bool TChoice::getStatus() {
     return isSelected;
 }
 
-TBar::TBar() : TObject(), text(font) {
-    value = 0.5;
-    posX = width * value;
 
-    first.setPosition(Vector2f( x, y ));
-    first.setSize(Vector2f(posX, height));
+TBar::TBar() : text(font) {
+    const auto& [x, y] = position;
+    const auto& [width, height] = size;
+
+    value = 0.5f;
+    posX = static_cast<int>(width * value);
+
+    first.setPosition(position);
+    first.setSize({ posX, height });
     first.setFillColor(Color::Green);
 
-    second.setPosition(Vector2f( x + posX, y ));
-    second.setSize(Vector2f( height - posX, height ));
+    second.setPosition({ x + posX, y });
+    second.setSize({ height - posX, height });
     second.setFillColor(Color::White);
 
     text.setFillColor(Color::Black);
-    text.setPosition(Vector2f( 0, 0 ));
+    text.setPosition({0, 0});
     text.setCharacterSize(fontSize);
-    text.setString("");
-
 }
+
 void TBar::setFirstColor(Color color) {
     first.setFillColor(color);
 }
+
 void TBar::setSecondColor(Color color) {
     second.setFillColor(color);
 }
+
 void TBar::draw(RenderWindow& win) const {
     if (visible) {
         TObject::draw(win);
@@ -376,47 +454,68 @@ void TBar::draw(RenderWindow& win) const {
 }
 
 inline void TProgressBar::setWidth() {
-    posX = width * value;
+    const float width = size.x;
+    posX = static_cast<int>(width * value);
 }
+
 inline void TProgressBar::setTextPosition() {
-    text.setPosition(Vector2f( x + 4, y + (height - fontSize) / 2 - 3 ));
+    const auto& [x, y] = position;
+    const auto& [width, height] = size;
+
+    const float newX = x + 4;
+    const float newY = y + (height - fontSize) / 2.f - 3;
+    text.setPosition({ newX, newY });
 }
+
 inline void TProgressBar::setString() {
     int toSet = std::round(abs(value) * 100);
-    std::string result = std::to_string(toSet);
-    result.push_back('%');
+    string result = std::to_string(toSet) + "%";
     text.setString(result);
 }
+
 TProgressBar::TProgressBar() : TBar() { }
-void TProgressBar::setPos(int tx, int ty) {
-    TObject::setPos(tx, ty);
 
-    first.setPosition(Vector2f( tx, ty ));
-    second.setPosition(Vector2f( tx + posX, ty ));
+void TProgressBar::setPosition(Vector2f _position) {
+    TObject::setPosition(_position);
+    first.setPosition(_position);
+
+    const auto& [x, y] = _position;
+    second.setPosition({ x + posX, y });
+    setTextPosition();
+}
+
+void TProgressBar::setSize(Vector2f _size) {
+    TObject::setSize(_size);
+    first.setSize(_size);
+
+    const auto& [x, y] = position;
+    const auto& [width, height] = _size;
+    second.setSize({ width - posX, height });
+    second.setPosition({ x + posX, y });
 
     setTextPosition();
 }
-void TProgressBar::setSize(int twidth, int theight) {
-    TObject::setSize(twidth, theight);
 
-    first.setSize(Vector2f(twidth, theight));
-
-    second.setSize(Vector2f(width - posX, height));
-    second.setPosition(Vector2f( x + posX, y ));
-
-    setTextPosition();
-}
-void TProgressBar::setValue(float toSet) {
-    value = toSet;
+void TProgressBar::setValue(float _value) {
+    value = _value;
     setWidth();
     setString();
     setTextPosition();
-    first.setSize(Vector2f(posX, height));
-    second.setPosition(Vector2f( x + posX, y ));
-    second.setSize(Vector2f(width - posX, height));
+
+    const auto& [x, y] = position;
+    const auto& [width, height] = size;
+
+    first.setSize({ posX, height });
+    second.setPosition({ x + posX, y });
+    second.setSize({ width - posX, height });
 }
 
+
 inline void TAssessBar::setHeight() {
+
+    const auto& [x, y] = position;
+    const auto& [width, height] = size;
+
     if (abs(value) < 0.2) {
         posX = height / 2;
     }
@@ -430,10 +529,11 @@ inline void TAssessBar::setHeight() {
         posX = height * (value + 5) / 10;
     }
     posX = height - posX;
-    first.setSize(Vector2f(width, posX));
-    second.setPosition(Vector2f( x, y + posX ));
-    second.setSize(Vector2f(width, height - posX));
+    first.setSize({ width, posX });
+    second.setPosition({ x, y + posX });
+    second.setSize({ width, height - posX });
 }
+
 inline void TAssessBar::setTextColor() {
     if (value < 0) {
         text.setFillColor(second.getFillColor());
@@ -442,14 +542,19 @@ inline void TAssessBar::setTextColor() {
         text.setFillColor(first.getFillColor());
     }
 }
+
 inline void TAssessBar::setTextPosition() {
-    if (value < 0) {
-        text.setPosition(Vector2f( x + 8, y + 4 ));
-    }
-    else {
-        text.setPosition(Vector2f( x + 8, y + height - fontSize - 4 ));
-    }
+    const auto& [x, y] = position;
+    const auto& [width, height] = size;
+
+    const float newX = x + 8;
+    const float newY = value < 0
+        ? y + 4
+        : y + height - fontSize - 4;
+
+    text.setPosition({ newX, newY });
 }
+
 inline void TAssessBar::setString() {
     float toSet = std::round(abs(value) * 100) / 100;
     std::string result = "";
@@ -465,24 +570,33 @@ inline void TAssessBar::setString() {
     }
     text.setString(result);
 }
+
 TAssessBar::TAssessBar() : TBar() {
     isFlip = false;
     text.setCharacterSize(fontSize - 6);
     text.setOutlineThickness(1);
 }
-void TAssessBar::setPos(int tx, int ty) {
-    TObject::setPos(tx, ty);
-    first.setPosition(Vector2f( tx, ty ));
-    second.setPosition(Vector2f( tx, ty + posX ));
+
+void TAssessBar::setPosition(Vector2f _position) {
+    TObject::setPosition(_position);
+    first.setPosition(_position);
+
+    const auto& [x, y] = _position;
+    second.setPosition({ x, y + posX });
     setTextPosition();
 }
-void TAssessBar::setSize(int twidth, int theight) {
-    TObject::setSize(twidth, theight);
-    first.setSize(Vector2f(twidth, theight));
-    second.setSize(Vector2f(width, height - posX));
-    second.setPosition(Vector2f( x, y + posX ));
+
+void TAssessBar::setSize(Vector2f _size) {
+    TObject::setSize(_size);
+    first.setSize(_size);
+
+    const auto& [x, y] = position;
+    const auto& [width, height] = _size;
+    second.setSize({ width, height - posX });
+    second.setPosition({ x, y + posX });
     setTextPosition();
 }
+
 void TAssessBar::setValue(float toSet) {
     if (isFlip) {
         value = -toSet;
@@ -495,6 +609,7 @@ void TAssessBar::setValue(float toSet) {
     setTextColor();
     setTextPosition();
 }
+
 void TAssessBar::flip() {
     isFlip = !isFlip;
     value = -value;
@@ -506,10 +621,14 @@ void TAssessBar::flip() {
     second.setFillColor(temp);
 }
 
+
 TCommentSection::TCommentSection() : TObject() {
     setThickness(2);
     values.resize(10, 0);
 
+    const auto& [x, y] = position;
+
+    //TODO: CLEAN THIS SHIT
     Text text(font);
     text.setCharacterSize(fontSize);
     text.setFillColor(Color::Black);
@@ -581,36 +700,40 @@ TCommentSection::TCommentSection() : TObject() {
     text.setString("0.0%");
     vText.push_back(text);
 }
-void TCommentSection::setPos(int x0, int y0) {
-    TObject::setPos(x0, y0);
 
-    vText[0].setPosition(Vector2f( x0 + 50, y0 ));
-    vText[1].setPosition(Vector2f( x0, y0 + 50 ));
-    vText[2].setPosition(Vector2f( x0 + 30, y0 + 50 ));
-    vText[3].setPosition(Vector2f( x0 + 200, y0 + 50 ));
+void TCommentSection::setPosition(Vector2f _position) {
+    TObject::setPosition(_position);
 
-    vText[4].setPosition(Vector2f( x0, y0 + 100 ));
-    vText[5].setPosition(Vector2f( x0 + 30, y0 + 100 ));
-    vText[6].setPosition(Vector2f( x0 + 200, y0 + 100 ));
+    const auto& [x, y] = _position;
 
-    vText[7].setPosition(Vector2f( x0, y0 + 150 ));
-    vText[8].setPosition(Vector2f( x0 + 30, y0 + 150 ));
-    vText[9].setPosition(Vector2f( x0 + 200, y0 + 150 ));
+    vText[0].setPosition(Vector2f( x + 50, y ));
+    vText[1].setPosition(Vector2f( x, y + 50 ));
+    vText[2].setPosition(Vector2f( x + 30, y + 50 ));
+    vText[3].setPosition(Vector2f( x + 200, y + 50 ));
 
-    vText[10].setPosition(Vector2f( x0, y0 + 200 ));
-    vText[11].setPosition(Vector2f( x0 + 30, y0 + 200 ));
-    vText[12].setPosition(Vector2f( x0 + 200, y0 + 200 ));
+    vText[4].setPosition(Vector2f( x, y + 100 ));
+    vText[5].setPosition(Vector2f( x + 30, y + 100 ));
+    vText[6].setPosition(Vector2f( x + 200, y + 100 ));
 
-    vText[13].setPosition(Vector2f( x0, y0 + 250 ));
-    vText[14].setPosition(Vector2f( x0 + 30, y0 + 250 ));
-    vText[15].setPosition(Vector2f( x0 + 200, y0 + 250 ));
+    vText[7].setPosition(Vector2f( x, y + 150 ));
+    vText[8].setPosition(Vector2f( x + 30, y + 150 ));
+    vText[9].setPosition(Vector2f( x + 200, y + 150 ));
 
-    vText[16].setPosition(Vector2f( x0, y0 + 320 ));
-    vText[17].setPosition(Vector2f( x0 + 200, y0 + 320 ));
-    vText[18].setPosition(Vector2f( x0, y0 + 370 ));
-    vText[19].setPosition(Vector2f( x0 + 200, y0 + 370 ));
+    vText[10].setPosition(Vector2f( x, y + 200 ));
+    vText[11].setPosition(Vector2f( x + 30, y + 200 ));
+    vText[12].setPosition(Vector2f( x + 200, y + 200 ));
+
+    vText[13].setPosition(Vector2f( x, y + 250 ));
+    vText[14].setPosition(Vector2f( x + 30, y + 250 ));
+    vText[15].setPosition(Vector2f( x + 200, y + 250 ));
+
+    vText[16].setPosition(Vector2f( x, y + 320 ));
+    vText[17].setPosition(Vector2f( x + 200, y + 320 ));
+    vText[18].setPosition(Vector2f( x, y + 370 ));
+    vText[19].setPosition(Vector2f( x + 200, y + 370 ));
 
 }
+
 void TCommentSection::setValues(std::vector<MoveData>& vdata) {
     int white, black, sumwhite, sumblack;
     sumblack = sumwhite = white = black = 0;
@@ -687,12 +810,14 @@ void TCommentSection::setValues(std::vector<MoveData>& vdata) {
         vText[19].setString(std::to_string(black * 100 / sumblack) + "." + std::to_string((black * 1000 / sumblack) % 10) + "%");
     }
 }
+
 void TCommentSection::draw(RenderWindow& win) const {
     TObject::draw(win);
-    for (auto& elem : vText) {
+    std::ranges::for_each(vText, [&win](const auto& elem) {
         win.draw(elem);
-    }
+    });
 }
+
 
 void GameController::getData(MoveData& source) {
     assess = source.assess;
@@ -702,6 +827,7 @@ void GameController::getData(MoveData& source) {
     x = source.x;
     y = source.y;
 }
+
 void GameController::setData(MoveData& dest) {
     dest.assess = assess;
     dest.x = x;
@@ -712,6 +838,7 @@ void GameController::setData(MoveData& dest) {
     dest.type = type;
     dest.vec = vec;
 }
+
 GameController::GameController() {
     type = MOVE;
     x = y = vec = 0;
@@ -730,6 +857,7 @@ GameController::GameController() {
 
     gameMoves.push_back(temp);
 }
+
 MOVE_RESULT GameController::PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2) {
     if (curr == head && !locked) {
 
@@ -758,6 +886,7 @@ MOVE_RESULT GameController::PlayerMove(mytype x1, mytype y1, mytype x2, mytype y
         return result;
     }
 }
+
 MOVE_RESULT GameController::EngineMove(mytype depth) {
     if (!locked) {
         getCurr();
@@ -785,6 +914,7 @@ MOVE_RESULT GameController::EngineMove(mytype depth) {
     }
     return INVALID_COORD;
 }
+
 void GameController::getPrev() {
     if (curr > 0) {
         curr--;
@@ -793,6 +923,7 @@ void GameController::getPrev() {
         assess = temp.assess;
     }
 }
+
 void GameController::getNext() {
     if (curr < head) {
         curr++;
@@ -801,6 +932,7 @@ void GameController::getNext() {
         assess = temp.assess;
     }
 }
+
 void GameController::getCurr() {
     if (curr != head) {
         curr = head;
@@ -809,6 +941,7 @@ void GameController::getCurr() {
         assess = temp.assess;
     }
 }
+
 
 void AnalysicsController::getData(MoveData& source) {
     assess = source.assess;
@@ -823,6 +956,7 @@ void AnalysicsController::getData(MoveData& source) {
     y2 = source.coord[3];
     comment = source.comment;
 }
+
 AnalysicsController::AnalysicsController() {
 
     x1 = x2 = y1 = y2 = 0;
@@ -836,30 +970,36 @@ AnalysicsController::AnalysicsController() {
     BInit(field);
 
 }
+
 void AnalysicsController::evaluate(int index, int depth) {
     engine.evaluate(gameMoves[index], depth);
 }
+
 void AnalysicsController::setMoves(std::vector<MoveData>& tgameMoves) {
     gameMoves = tgameMoves;
 }
+
 void AnalysicsController::getPrev() {
     if (curr > 0) {
         curr--;
         getData(gameMoves[curr]);
     }
 }
+
 void AnalysicsController::getNext() {
     if (curr < gameMoves.size() - 1) {
         curr++;
         getData(gameMoves[curr]);
     }
 }
+
 void AnalysicsController::getCurr() {
     if (curr != head) {
         curr = head;
         getData(gameMoves[curr]);
     }
 }
+
 
 TInput::TInput() : TClickable(), text(font) {
     text.setPosition(Vector2f( 3, 3 ));
@@ -871,15 +1011,18 @@ TInput::TInput() : TClickable(), text(font) {
     limit = 15;
     isSelected = false;
 }
+
 bool TInput::checkchar(char toCheck) {
     return (toCheck >= '0') && (toCheck <= '9') || 
         (toCheck >= 'a') && (toCheck <= 'z') || 
         (toCheck >= 'A') && (toCheck <= 'Z') || 
         (toCheck == '_');
 }
+
 void TInput::onPress() {
     isSelected = visible;
 }
+
 void TInput::onKeyPress(char inputChar) {
 
     if (isSelected) {
@@ -907,28 +1050,41 @@ void TInput::onKeyPress(char inputChar) {
 
     }
 }
+
 void TInput::onRelease() {
     isSelected = false;
 }
+
 void TInput::draw(RenderWindow& win) const {
     if (visible) {
         TClickable::draw(win);
         win.draw(text);
     }
 }
-void TInput::setPos(int x0, int y0) {
-    TClickable::setPos(x0, y0);
-    text.setPosition(Vector2f(x0 + 3, y0 + (height - fontSize) / 2 - 4));
+
+void TInput::setPosition(Vector2f _position) {
+    TClickable::setPosition(_position);
+
+    const auto& [x, y] = _position;
+    const auto& [width, height] = size;
+
+    const float newX = x + 3;
+    const float newY = y + (height - fontSize) / 2.f - 4;
+    text.setPosition({newX, newY});
 }
-void TInput::setSize(int w, int h) {
-    TClickable::setSize(w, h);
+
+void TInput::setSize(Vector2f _size) {
+    TClickable::setSize(_size);
 }
+
 void TInput::setLimit(int lim) {
     limit = lim;
 }
+
 std::string TInput::getText() {
     return text.getString();
 }
+
 
 TWait::TWait() {
     for (int i = 0; i < 6; ++i) {
@@ -939,28 +1095,33 @@ TWait::TWait() {
     }
     setPos();
 }
+
 void TWait::setNext() {
     mas[current].setFillColor(Color::White);
     current = (current + 1) % 6;
     mas[current].setFillColor(Color::Green);
 }
-void TWait::setPos(int tx, int ty) {
-    x = tx;
-    y = ty;
-    setPos();
+
+void TWait::setPosition(Vector2f _position) {
+    TObject::setPosition(_position);
 }
+
 void TWait::setRadius(int tradius) {
     radius = tradius;
     setPos();
 }
+
 void TWait::setPos() {
-    mas[0].setPosition(Vector2f(x + radius * s3 / 2, y));
-    mas[1].setPosition(Vector2f(x + radius * s3, y + radius / 2));
-    mas[2].setPosition(Vector2f(x + radius * s3, y + 3 * radius / 2));
-    mas[3].setPosition(Vector2f(x + radius * s3 / 2, y + 2 * radius));
-    mas[4].setPosition(Vector2f(x, y + 3 * radius / 2));
-    mas[5].setPosition(Vector2f(x, y + radius / 2));
+    const auto& [x, y] = position;
+
+    mas[0].setPosition({ x + radius * s3 / 2, y });
+    mas[1].setPosition({ x + radius * s3, y + radius / 2 });
+    mas[2].setPosition({ x + radius * s3, y + 3 * radius / 2 });
+    mas[3].setPosition({ x + radius * s3 / 2, y + 2 * radius });
+    mas[4].setPosition({ x, y + 3 * radius / 2 });
+    mas[5].setPosition({ x, y + radius / 2 });
 }
+
 void TWait::draw(RenderWindow& win) const {
     if (visible) {
         for (int i = 0; i < 6; ++i) {
@@ -968,6 +1129,7 @@ void TWait::draw(RenderWindow& win) const {
         }
     }
 }
+
 void TWait::setVisible(bool toSet) {
     visible = toSet;
 }
@@ -982,9 +1144,11 @@ void TClock::tictac() {
         }
     }
 }
+
 std::string TClock::getStringTime(int seconds) {
     return std::to_string(seconds / 60) + ":" + std::to_string(seconds % 60 / 10) + std::to_string(seconds % 10);
 }
+
 TClock::TClock() : TObject(), text(font) {
     value = 0;
     setThickness(3);
@@ -993,33 +1157,42 @@ TClock::TClock() : TObject(), text(font) {
     text.setFillColor(Color::Black);
     text.setCharacterSize(32);
     //thread = new std::thread(&TClock::tictac, this);
-    setSize(150, 50);
+    setSize({150, 50});
 }
+
 void TClock::update(int seconds) {
     value = seconds;
     text.setString(getStringTime(seconds));
 }
-void TClock::setPos(int tx, int ty) {
-    TObject::setPos(tx, ty);
-    text.setPosition(Vector2f( tx + 47, ty + 4 ));
+
+void TClock::setPosition(Vector2f _position) {
+    TObject::setPosition(position);
+
+    const auto& [x, y] = _position;
+    text.setPosition({ x + 47, y + 4 });
 }
+
 void TClock::start() {
     gameIsGoing = true;
     yourTurn = true;
     //thread->launch();
 }
+
 void TClock::pause() {
     background.setFillColor(Color(220, 220, 220));
     yourTurn = false;
 }
+
 void TClock::release() {
     background.setFillColor(Color::White);
     yourTurn = true;
 }
+
 void TClock::draw(RenderWindow& win) const {
     TObject::draw(win);
     win.draw(text);
 }
+
 void TClock::stop() {
     gameIsGoing = false;
     //thread->terminate();

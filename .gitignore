@@ -1,7 +1,7 @@
-Engine/x64/
-Engine/UpgradeLog
-Engine/.vs/
 Engine/Engine/x64/
+Engine/UpgradeLog
+Engine/Engine/.vs/
+Engine/Engine/Engine/x64/
 Engine/UpgradeLog.htm
 Engine/server/.vs
 .gitignore
