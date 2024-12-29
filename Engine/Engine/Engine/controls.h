@@ -7,12 +7,10 @@
 #include <memory>
 
 using namespace sf;
-#define schar signed char
-typedef mytype Coord[4];
 
 extern Font font;
-static const int fontSize = 24;
-static const int tileSize = 100;
+static constexpr int fontSize = 24;
+static constexpr int tileSize = 100;
 
 using std::vector, std::string, std::thread, std::unique_ptr, std::array,
 std::function;
@@ -23,7 +21,7 @@ public:
     virtual void setPosition(Vector2f position);
     virtual void setSize(Vector2f size);
     void setColor(Color color);
-    void setThickness(int thickness);
+    void setThickness(float thickness);
     virtual void draw(RenderWindow& win) const;
 
 protected:
@@ -40,10 +38,10 @@ public:
     TLabel();
     TLabel(const string& _caption, const Vector2f _pos, bool _visible = true);
 
-    void setText(string _text);
+    void setText(const string& _text);
     void setPosition(Vector2f position) override;
     void draw(RenderWindow& win) const override;
-    void setTextThickness(int thick);
+    void setTextThickness(float thick);
     void setFontSize(int fontSize);
     void setTextColor(Color color);
     void setOutlineColor(Color color);
@@ -54,12 +52,12 @@ private:
 
 class TClickable : public TObject {
 public:
-    bool isPressed(Vector2f pos);
-    void setOnPress(const function<void()>& callback);
     TClickable();
+    bool isPressed(Vector2i pos) const;
+    void setOnPress(const function<void()>& callback);
+    virtual void onPress();
 
 protected:
-    virtual void onPress();
     function<void()> onPressFunction;
 };
 
@@ -83,16 +81,17 @@ private:
 class TChoice final : public TClickable {
 public:
     TChoice();
+    TChoice(Vector2f _position, const function<void()>& callback, bool _status, bool _visible = true);
+
     void setPosition(Vector2f position) override;
     void setSize(Vector2f position) override;
-    void onPress() override;
     void onRelease();
     void draw(RenderWindow& win) const override;
     void setStatus(bool status);
     bool getStatus();
 
 private:
-    bool isSelected;
+    bool status;
     RectangleShape in;
 };
 

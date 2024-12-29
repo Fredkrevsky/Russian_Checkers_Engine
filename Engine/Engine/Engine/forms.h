@@ -39,12 +39,13 @@ public:
         {
             while (const optional event = window.pollEvent())
             {
+                auto mousePos = Mouse::getPosition(window);
                 if (event->is<Event::Closed>()) {
                     onClose();
                 }
                 else if (event->is<Event::MouseButtonPressed>()) {
-                    auto mousePos = Mouse::getPosition();
-                    onLeftButtonClick(mousePos);
+                    
+                    onLeftButtonPress(mousePos);
                 }
                 else if (event->is<Event::MouseButtonReleased>()) {
                     auto mousePos = Mouse::getPosition();
@@ -80,7 +81,7 @@ protected:
 
     virtual void onKeyDown(Keyboard::Key key) { }
 
-    virtual void onLeftButtonClick(Vector2i position) { }
+    virtual void onLeftButtonPress(Vector2i position) { }
 
     virtual void onLeftButtonRelease(Vector2i position) { }
 
@@ -95,6 +96,8 @@ public:
 protected:
     void onDraw() const override;
 
+    //void onLeftButtonPress(Vector2i mousePosition) override;
+
 private:
     TButton exitB;
     TBoard board;
@@ -105,21 +108,6 @@ private:
     TCommentSection section;
 };
 
-class TStartForm final : public TForm {
-public:
-    TStartForm();
-    ~TStartForm();
-
-protected:
-    void onDraw() const override;
-
-private:
-    vector<TLabel> vLabel;
-    vector<TChoice> vChoice;
-    vector<TInput> vInput;
-    TButton startB, exitB;
-    const array<int, 4> masDepth =  { 4, 8, 10, 12 };
-};
 
 class TEngineForm final: public TForm {
 public:
@@ -179,4 +167,27 @@ private:
     void sendMove(mytype x1, mytype y1, mytype x2, mytype y2);
     void receive();
     void loading();
+};
+
+class TStartForm final : public TForm {
+public:
+    TStartForm();
+    ~TStartForm();
+
+protected:
+    void onDraw() const override;
+
+    void onLeftButtonPress(Vector2i mousePosition) override;
+
+private:
+    vector<TLabel> vLabel;
+    vector<TChoice> vChoice;
+    vector<TInput> vInput;
+    TButton startB, exitB;
+    const array<int, 4> masDepth =  { 4, 8, 10, 12 };
+
+    unique_ptr<TEngineForm> engineForm;
+    unique_ptr<TPvpForm> pvpForm;
+    bool pvp{ false };
+    bool turn{ true };
 };

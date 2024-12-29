@@ -7,6 +7,8 @@
 #define ENGINE_FORM_SIZE Vector2u{1200, 900}
 #define ANALYSICS_FORM_SIZE Vector2u{1200, 900}
 
+using std::pair;
+
 void TAnalysicsForm::onDraw() const {
     bar.draw(window);
     board.draw(window);
@@ -50,9 +52,10 @@ TAnalysicsForm::TAnalysicsForm(std::vector<MoveData>& data) :
     bar.setValue(0.0);
     draw();
 
-    for (int i = 1; i < control.gameMoves.size(); i++) {
+    for (int i = 1, size = control.gameMoves.size(); i < size; i++) {
         control.evaluate(i, 10);
-        pbar.setValue((float)i / control.gameMoves.size());
+        const float progress = static_cast<float>(i) / size;
+        pbar.setValue(progress);
         draw();
     }
     section.setValues(control.gameMoves);
@@ -109,13 +112,13 @@ TAnalysicsForm::TAnalysicsForm(std::vector<MoveData>& data) :
 //}
 
 void TStartForm::onDraw() const {
-    std::ranges::for_each(vLabel, [&](const auto& label) {
+    std::ranges::for_each(vLabel, [this](const auto& label) {
         label.draw(window);
     });
-    std::ranges::for_each(vChoice, [&](const auto& choice) {
+    std::ranges::for_each(vChoice, [this](const auto& choice) {
         choice.draw(window);
     });
-    std::ranges::for_each(vInput, [&](const auto& input) {
+    std::ranges::for_each(vInput, [this](const auto& input) {
         input.draw(window);
     });
     startB.draw(window);
@@ -145,32 +148,81 @@ TStartForm::TStartForm() : TForm(START_FORM_SIZE, "Start form") {
 
     turn = true;
 
-    TChoice tempC;
-    tempC.setPosition({ 445, 97 });
-    tempC.setStatus(true);
-    vChoice.push_back(tempC);
-
-    tempC.setPosition({ 445, 147 });
-    tempC.setStatus(false);
-    vChoice.push_back(tempC);
-
-    tempC.setVisible(false);
-    tempC.setPosition({ 445, 285 });
-    tempC.setStatus(true);
-    vChoice.push_back(tempC);
-    tempC.setStatus(false);
-    tempC.setPosition({ 445, 335 });
-    vChoice.push_back(tempC);
-
-    tempC.setVisible(false);
-    for (int i = 0; i < 4; ++i) {
-        if (i == 3) {
-            tempC.setStatus(true);
+    vChoice.push_back(TChoice({ 445, 97 }, [&]() {
+        vChoice[0].setStatus(true);
+        vChoice[1].setStatus(false);
+        for (int i = 2; i < 8; ++i) {
+            vChoice[i].setVisible(false);
         }
-        const float newY = 475 + 50.f * i;
-        tempC.setPosition({ 445, newY});
-        vChoice.push_back(tempC);
-    }
+        for (int i = 3; i < 11; ++i) {
+            vLabel[i].setVisible(false);
+        }
+        vInput[0].setVisible(true);
+        vInput[1].setVisible(true);
+        vLabel[11].setVisible(true);
+        vLabel[12].setVisible(true);
+        pvp = true;
+    }, true));
+
+    vChoice.push_back(TChoice({ 445, 147 }, [&]() {
+        vChoice[1].setStatus(true);
+        vChoice[0].setStatus(false);
+        for (int i = 2; i < 8; ++i) {
+            vChoice[i].setVisible(true);
+        }
+        for (int i = 3; i < 11; ++i) {
+            vLabel[i].setVisible(true);
+        }
+        vInput[0].setVisible(false);
+        vInput[1].setVisible(false);
+        vLabel[11].setVisible(false);
+        vLabel[12].setVisible(false);
+        pvp = false;
+    }, false));
+
+    vChoice.push_back(TChoice({ 445, 285 }, [&]() {
+        turn = true;
+        vChoice[2].setStatus(true);
+        vChoice[3].setStatus(false);    
+    }, true, false));
+
+    vChoice.push_back(TChoice({ 445, 335 }, [&]() {
+        turn = false;
+        vChoice[2].setStatus(false);
+        vChoice[3].setStatus(true);    
+    }, false, false));
+
+    vChoice.push_back(TChoice({ 445, 475 }, [&]() {
+        vChoice[4].setStatus(true);
+        vChoice[5].setStatus(false);
+        vChoice[6].setStatus(false);
+        vChoice[7].setStatus(false);
+        depth = masDepth[0];
+        }, false, false));
+
+    vChoice.push_back(TChoice({ 445, 525 }, [&]() {
+        vChoice[4].setStatus(false);
+        vChoice[5].setStatus(true);
+        vChoice[6].setStatus(false);
+        vChoice[7].setStatus(false);
+        depth = masDepth[1];
+        }, false, false));
+
+    vChoice.push_back(TChoice({ 445, 575 }, [&]() {
+        vChoice[4].setStatus(false);
+        vChoice[5].setStatus(false);
+        vChoice[6].setStatus(true);
+        vChoice[7].setStatus(false);
+        depth = masDepth[2];
+        }, false, false));
+
+    vChoice.push_back(TChoice({ 445, 625 }, [&]() {
+        vChoice[4].setStatus(false);
+        vChoice[5].setStatus(false);
+        vChoice[6].setStatus(false);
+        vChoice[7].setStatus(true);
+        depth = masDepth[3];
+        }, true, false));
 
     depth = masDepth[3];
 
@@ -195,100 +247,56 @@ TStartForm::TStartForm() : TForm(START_FORM_SIZE, "Start form") {
     startB.setCaption("Start");
     startB.setPosition({ 240, 720 });
     startB.setThickness(2);
+    startB.setOnPress([&]() {
+        window.setVisible(false);
+        engineForm.reset(new TEngineForm());
+        engineForm->poll();
+        window.setVisible(true);
+    });
 
     exitB.setSize({ 125, 50 });
     exitB.setColor(Color::Green);
     exitB.setCaption("Exit");
     exitB.setPosition({ 400, 720 });
     exitB.setThickness(2);
+    exitB.setOnPress([&]() {
+        window.close();
+    });
 
     draw();
 }
 
 TStartForm::~TStartForm() { }
 
+void TStartForm::onLeftButtonPress(Vector2i mousePosition) {
+    if (startB.isPressed(mousePosition)) {
+        startB.onPress();
+    }
+    else if (exitB.isPressed(mousePosition)) {
+        exitB.onPress();
+    }
+    else if (auto choiceIt = std::ranges::find_if(vChoice, [mousePosition](const auto& choice) {
+        return choice.isPressed(mousePosition);
+        });
+        choiceIt != vChoice.end()) {
+        choiceIt->onPress();
+    }
+    else if (vInput[0].isPressed(mousePosition)) {
+        vInput[0].onPress();
+        vInput[1].onRelease();
+    }
+    else if (vInput[1].isPressed(mousePosition)) {
+        vInput[1].onPress();
+        vInput[0].onRelease();
+    }
+}
+
 //void TStartForm::poll() {
 //
 //    while (win.isOpen()) {
 //
 //        while (const std::optional event = win.pollEvent()) {
-//            if (event->is<Event::Closed>()) {
-//                onClose();
-//                /*win.close();
-//                open = false;*/
-//            }
 //            else if (event->is<Event::MouseButtonPressed>()) {
-//                onLeftButtonPress();
-//                //Vector2f pos = Vector2f(Mouse::getPosition(win));
-//
-//                //int index = -1;
-//                //for (int i = 0; i < 8; i++) {
-//                //    if (vChoice[i].isPressed(pos)) {
-//                //        index = i;
-//                //        break;
-//                //    }
-//                //}
-//                //if (index != -1) {
-//                //    if (index == 0) {
-//                //        vChoice[0].setStatus(true);
-//                //        vChoice[1].setStatus(false);
-//                //        for (int i = 2; i < 8; ++i) {
-//                //            vChoice[i].setVisible(false);
-//                //        }
-//                //        for (int i = 3; i < 11; ++i) {
-//                //            vLabel[i].setVisible(false);
-//                //        }
-//                //        vInput[0].setVisible(true);
-//                //        vInput[1].setVisible(true);
-//                //        vLabel[11].setVisible(true);
-//                //        vLabel[12].setVisible(true);
-//                //        pvp = true;
-//                //    }
-//                //    else if (index == 1) {
-//                //        vChoice[1].setStatus(true);
-//                //        vChoice[0].setStatus(false);
-//                //        for (int i = 2; i < 8; ++i) {
-//                //            vChoice[i].setVisible(true);
-//                //        }
-//                //        for (int i = 3; i < 11; ++i) {
-//                //            vLabel[i].setVisible(true);
-//                //        }
-//                //        vInput[0].setVisible(false);
-//                //        vInput[1].setVisible(false);
-//                //        vLabel[11].setVisible(false);
-//                //        vLabel[12].setVisible(false);
-//                //        pvp = false;
-//                //    }
-//                //    else if (index == 2) {
-//                //        turn = true;
-//                //        vChoice[2].setStatus(true);
-//                //        vChoice[3].setStatus(false);
-//                //    }
-//                //    else if (index == 3) {
-//                //        turn = false;
-//                //        vChoice[2].setStatus(false);
-//                //        vChoice[3].setStatus(true);
-//                //    }
-//                //    else {
-//                //        for (int i = 4; i < 8; i++) {
-//                //            if (i != index) {
-//                //                vChoice[i].setStatus(false);
-//                //            }
-//                //            else {
-//                //                vChoice[i].setStatus(true);
-//                //            }
-//                //        }
-//                //        depth = masDepth[index - 4];
-//                //    }
-//                //}
-//                //else if (vInput[0].isPressed(pos)) {
-//                //    vInput[0].onPress();
-//                //    vInput[1].onRelease();
-//                //}
-//                //else if (vInput[1].isPressed(pos)) {
-//                //    vInput[1].onPress();
-//                //    vInput[0].onRelease();
-//                //}
 //                //else if (startB.isPressed(pos)) {
 //                //    if (!pvp/* || pvp && vInput[1].getText().size() && socket.connect(vInput[0].getText(), stoi(vInput[1].getText())) == Socket::Done*/) {
 //                //        win.close();

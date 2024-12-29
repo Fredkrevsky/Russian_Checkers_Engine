@@ -1,9 +1,8 @@
 #include "controls.h"
 #include <algorithm>
 
-using std::string;
+using std::string, std::to_string, std::round, std::swap;
 
-/// REMOVE STATIC_CAST<INT> FROM FLOAT
 
 TBoard::TBoard() : TObject(){
 
@@ -36,11 +35,11 @@ void TBoard::getCoord(Vector2f start, Vector2f end, mytype coord[]) {
 
     const auto& [x, y] = position;
 
-    mytype x1 = (start.x - x) / tileSize;
-    mytype y1 = 7 - (start.y - y) / tileSize;
+    mytype x1 = static_cast<mytype>((start.x - x) / tileSize);
+    mytype y1 = static_cast<mytype>(7 - (start.y - y) / tileSize);
 
-    mytype x2 = (end.x - x) / tileSize;
-    mytype y2 = 7 - (end.y - y) / tileSize;
+    mytype x2 = static_cast<mytype>((end.x - x) / tileSize);
+    mytype y2 = static_cast<mytype>(7 - (end.y - y) / tileSize);
 
     if (flipped) {
         x1 = 7 - x1;
@@ -56,58 +55,62 @@ void TBoard::getCoord(Vector2f start, Vector2f end, mytype coord[]) {
 }
 
 void TBoard::flip() {
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 8; j++) {
-            std::swap(field[i][j], field[7 - i][7 - j]);    //Make std::xxxx();
-        }
-    }
+    std::reverse(field, field + 8);
+    std::for_each(field, field + 8, [](auto row[]) {
+        std::reverse(row, row + 8);
+    });
     flipped = !flipped;
 }
 
 void TBoard::draw(RenderWindow& win) const {
 
-    int posx = 0;
-    int posy = 0;    //Make class fields
+    float posx = 0;
+    float posy = 0;    //Make class fields
 
     RectangleShape cell(Vector2f(tileSize, tileSize));
     CircleShape checker(tileSize / 2 - 10);
     CircleShape in(tileSize / 4 - 5);
+
+    Color whiteColor(230, 230, 230), blackColor(30, 30, 30);
+    Color boardFirstColor(233, 237, 204), boardSecondColor(119, 153, 84);
 
     const auto& [x, y] = position;
 
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
 
+            auto piece{ field[i][j] };
+
             if ((i + j) % 2 == 1) {
-                cell.setFillColor(Color(233, 237, 204));
+                cell.setFillColor(boardFirstColor);
             }
             else {
-                cell.setFillColor(Color(119, 153, 84));
+                cell.setFillColor(boardSecondColor);
             }
 
             cell.setPosition(Vector2f(x + i * tileSize, y + (7 - j) * tileSize));
             win.draw(cell);
 
-            if (field[i][j] != 0) {
+            if (piece != 0) {
 
                 checker.setPosition(Vector2f(x + i * tileSize + 10, y + (7 - j) * tileSize + 10));
 
-                if ((field[i][j] == 1) || (field[i][j] == 3)) {
-                    checker.setFillColor(Color(230, 230, 230));
+                if (piece == 1 || piece == 3) {
+                    checker.setFillColor(whiteColor);
                 }
-                else if ((field[i][j] == 2) || (field[i][j] == 4)) {
-                    checker.setFillColor(Color(30, 30, 30));
+                else if (piece == 2 || piece == 4) {
+                    checker.setFillColor(blackColor);
                 }
                 if (!isCaptured || i != cx || j != cy) {
                     win.draw(checker);
-                    if (field[i][j] == 3) {
+                    if (piece == 3) {
                         in.setPosition(Vector2f(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5));
-                        in.setFillColor(Color(30, 30, 30));
+                        in.setFillColor(blackColor);
                         win.draw(in);
                     }
-                    else if (field[i][j] == 4) {
+                    else if (piece == 4) {
                         in.setPosition(Vector2f(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5));
-                        in.setFillColor(Color(230, 230, 230));
+                        in.setFillColor(whiteColor);
                         win.draw(in);
                     }
                 }
@@ -123,7 +126,7 @@ void TBoard::draw(RenderWindow& win) const {
         case INACCURACY: sprite.setTexture(inac); break;
         case GOOD: sprite.setTexture(good); break;
         }
-        int tempx, tempy;
+        float tempx, tempy;
         if (!flipped) {
             tempx = x + (x2 + 1) * tileSize - 25;
             tempy = y + (7 - y2) * tileSize - 25;
@@ -132,10 +135,10 @@ void TBoard::draw(RenderWindow& win) const {
             tempx = x + (8 - x2) * tileSize - 25;
             tempy = y + y2 * tileSize - 25;
         }
-        sprite.setPosition(Vector2f(tempx, tempy));
+        sprite.setPosition({ tempx, tempy });
 
-        float scaleFactor = 50.0f / sprite.getLocalBounds().size.y;
-        sprite.setScale(Vector2f(scaleFactor, scaleFactor));
+        const float scaleFactor = 50.0f / sprite.getLocalBounds().size.y;
+        sprite.setScale({ scaleFactor, scaleFactor });
         win.draw(sprite);
     }
     if (isCaptured) {
@@ -170,8 +173,8 @@ void TBoard::draw(RenderWindow& win) const {
 void TBoard::capture(int posx, int posy) {
     const auto& [x, y] = position;
 
-    cx = (posx - x) / tileSize;
-    cy = 7 - (posy - y) / tileSize;
+    cx = static_cast<mytype>((posx - x) / tileSize);
+    cy = static_cast<mytype>(7 - (posy - y) / tileSize);
 
     if (cx >= 0 && cx < 8 && cy >= 0 && cy < 8 && (cx + cy) % 2 == 0) {
         isCaptured = true;
@@ -209,8 +212,8 @@ TLabel::TLabel(const string& _caption, const Vector2f _position, bool _visible) 
     text.setPosition(_position);
 }
 
-void TLabel::setText(std::string txt) {
-    text.setString(txt);
+void TLabel::setText(const string& _text) {
+    text.setString(_text);
 }
 
 void TLabel::setPosition(Vector2f position) {
@@ -224,7 +227,7 @@ void TLabel::draw(RenderWindow& win) const {
     }
 }
 
-void TLabel::setTextThickness(int thick) {
+void TLabel::setTextThickness(float thick) {
     text.setOutlineThickness(thick);
 }
 
@@ -242,7 +245,7 @@ void TLabel::setOutlineColor(Color color) {
 
 
 TObject::TObject() {
-    background.setFillColor(Color(230, 230, 230));
+    background.setFillColor(Color::White);
     background.setPosition(Vector2f( 0, 0 ));
     background.setSize(Vector2f(0, 0));
     background.setOutlineColor(Color(30, 30, 30));
@@ -263,7 +266,7 @@ void TObject::setColor(Color color) {
     background.setFillColor(color);
 }
 
-void TObject::setThickness(int thickness) {
+void TObject::setThickness(float thickness) {
     background.setOutlineThickness(thickness);
 }
 
@@ -278,7 +281,7 @@ void TObject::setVisible(bool _visible) {
 }
 
 
-bool TClickable::isPressed(Vector2f mousePosition) {
+bool TClickable::isPressed(Vector2i mousePosition) const {
     auto& [posx, posy] = mousePosition;
     auto& [x, y] = position;
     auto& [width, height] = size;
@@ -297,12 +300,14 @@ void TClickable::setOnPress(const function<void()>& callback) {
 TClickable::TClickable() : TObject() {}
 
 void TClickable::onPress() {
-    onPressFunction();
+    if (onPressFunction) {
+        onPressFunction();
+    }
 }
 
 void TButton::normCaption() {
     const auto& captionString = caption.getString();
-    const int captionLength = captionString.getSize();
+    const int captionLength = static_cast<int>(captionString.getSize());
 
     const auto& [x, y] = position;
     const auto& [width, height] = size;
@@ -343,7 +348,8 @@ void TButton::setSize(Vector2f _size) {
 }
 
 void TButton::onPress() {
-    background.setFillColor(Color(50, 170, 50));
+    //background.setFillColor(Color(50, 170, 50));
+    TClickable::onPress();
 }
 
 void TButton::onRelease() {
@@ -358,10 +364,19 @@ void TButton::draw(RenderWindow& win) const {
 }
 
 
-TChoice::TChoice() : TClickable() {
-    background.setFillColor(Color::White);
-    isSelected = false;
+TChoice::TChoice() {
+    status = false;
     setSize({ 20, 20 });
+    setThickness(2);
+    in.setFillColor(Color(30, 30, 30));
+}
+
+TChoice::TChoice(Vector2f _position, const function<void()>& callback, bool _status, bool _visible) {
+    status = _status;
+    visible = _visible;
+    onPressFunction = callback;
+    setPosition(_position);
+    setSize({20, 20});
     setThickness(2);
     in.setFillColor(Color(30, 30, 30));
 }
@@ -392,27 +407,23 @@ void TChoice::setSize(Vector2f _size) {
     in.setSize({ newWidth, newHeight });
 }
 
-void TChoice::onPress() {
-    isSelected = !isSelected;
-}
-
 void TChoice::onRelease() { }
 
 void TChoice::draw(RenderWindow& win) const {
     if (visible) {
         TObject::draw(win);
-        if (isSelected) {
+        if (status) {
             win.draw(in);
         }
     }
 }
 
-void TChoice::setStatus(bool status) {
-    isSelected = status;
+void TChoice::setStatus(bool _status) {
+    status = _status;
 }
 
 bool TChoice::getStatus() {
-    return isSelected;
+    return status;
 }
 
 
@@ -421,7 +432,7 @@ TBar::TBar() : text(font) {
     const auto& [width, height] = size;
 
     value = 0.5f;
-    posX = static_cast<int>(width * value);
+    posX = width * value;
 
     first.setPosition(position);
     first.setSize({ posX, height });
@@ -455,7 +466,7 @@ void TBar::draw(RenderWindow& win) const {
 
 inline void TProgressBar::setWidth() {
     const float width = size.x;
-    posX = static_cast<int>(width * value);
+    posX = width * value;
 }
 
 inline void TProgressBar::setTextPosition() {
@@ -468,8 +479,8 @@ inline void TProgressBar::setTextPosition() {
 }
 
 inline void TProgressBar::setString() {
-    int toSet = std::round(abs(value) * 100);
-    string result = std::to_string(toSet) + "%";
+    const int toSet = static_cast<int>(round(abs(value) * 100));
+    string result = to_string(toSet) + "%";
     text.setString(result);
 }
 
@@ -556,15 +567,15 @@ inline void TAssessBar::setTextPosition() {
 }
 
 inline void TAssessBar::setString() {
-    float toSet = std::round(abs(value) * 100) / 100;
-    std::string result = "";
+    float toSet = round(abs(value) * 100) / 100;
+    string result = "";
     if (toSet > 0.15) {
         if (toSet > 99) {
             result = "win";
         }
         else {
-            result = std::to_string(toSet);
-            int dot = result.find('.');
+            result = to_string(toSet);
+            const int dot = static_cast<int>(result.find('.'));
             result = result.substr(0, dot + 2);
         }
     }
@@ -734,7 +745,7 @@ void TCommentSection::setPosition(Vector2f _position) {
 
 }
 
-void TCommentSection::setValues(std::vector<MoveData>& vdata) {
+void TCommentSection::setValues(vector<MoveData>& vdata) {
     int white, black, sumwhite, sumblack;
     sumblack = sumwhite = white = black = 0;
     for (int i = 1; i < vdata.size(); ++i) {
@@ -800,14 +811,14 @@ void TCommentSection::setValues(std::vector<MoveData>& vdata) {
         }
     }
     for (int i = 0; i < 5; ++i) {
-        vText[3 * i + 1].setString(std::to_string(values[2 * i]));
-        vText[3 * i + 3].setString(std::to_string(values[2 * i + 1]));
+        vText[3 * i + 1].setString(to_string(values[2 * i]));
+        vText[3 * i + 3].setString(to_string(values[2 * i + 1]));
     }
     if (sumwhite) {
-        vText[17].setString(std::to_string(white * 100 / sumwhite) + "." + std::to_string((white * 1000 / sumwhite) % 10) + "%");
+        vText[17].setString(to_string(white * 100 / sumwhite) + "." + to_string((white * 1000 / sumwhite) % 10) + "%");
     }
     if (sumblack) {
-        vText[19].setString(std::to_string(black * 100 / sumblack) + "." + std::to_string((black * 1000 / sumblack) % 10) + "%");
+        vText[19].setString(to_string(black * 100 / sumblack) + "." + to_string((black * 1000 / sumblack) % 10) + "%");
     }
 }
 
@@ -885,6 +896,7 @@ MOVE_RESULT GameController::PlayerMove(mytype x1, mytype y1, mytype x2, mytype y
         }
         return result;
     }
+    return MOVE_RESULT::INVALID_COORD;
 }
 
 MOVE_RESULT GameController::EngineMove(mytype depth) {
@@ -975,7 +987,7 @@ void AnalysicsController::evaluate(int index, int depth) {
     engine.evaluate(gameMoves[index], depth);
 }
 
-void AnalysicsController::setMoves(std::vector<MoveData>& tgameMoves) {
+void AnalysicsController::setMoves(vector<MoveData>& tgameMoves) {
     gameMoves = tgameMoves;
 }
 
@@ -1081,7 +1093,7 @@ void TInput::setLimit(int lim) {
     limit = lim;
 }
 
-std::string TInput::getText() {
+string TInput::getText() {
     return text.getString();
 }
 
@@ -1145,8 +1157,8 @@ void TClock::tictac() {
     }
 }
 
-std::string TClock::getStringTime(int seconds) {
-    return std::to_string(seconds / 60) + ":" + std::to_string(seconds % 60 / 10) + std::to_string(seconds % 10);
+string TClock::getStringTime(int seconds) {
+    return to_string(seconds / 60) + ":" + to_string(seconds % 60 / 10) + to_string(seconds % 10);
 }
 
 TClock::TClock() : TObject(), text(font) {
