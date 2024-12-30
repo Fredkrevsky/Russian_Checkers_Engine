@@ -62,14 +62,14 @@ void TBoard::flip() {
     flipped = !flipped;
 }
 
-void TBoard::draw(RenderWindow& win) const {
+void TBoard::draw(RenderWindow& window) const {
 
     float posx = 0;
     float posy = 0;    //Make class fields
 
     RectangleShape cell(Vector2f(tileSize, tileSize));
-    CircleShape checker(tileSize / 2 - 10);
-    CircleShape in(tileSize / 4 - 5);
+    CircleShape checkerCircle(tileSize / 2 - 10);
+    CircleShape innerCircle(tileSize / 4 - 5);
 
     Color whiteColor(230, 230, 230), blackColor(30, 30, 30);
     Color boardFirstColor(233, 237, 204), boardSecondColor(119, 153, 84);
@@ -79,7 +79,7 @@ void TBoard::draw(RenderWindow& win) const {
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
 
-            auto piece{ field[i][j] };
+            const auto piece{ field[i][j] };
 
             if ((i + j) % 2 == 1) {
                 cell.setFillColor(boardFirstColor);
@@ -89,29 +89,29 @@ void TBoard::draw(RenderWindow& win) const {
             }
 
             cell.setPosition(Vector2f(x + i * tileSize, y + (7 - j) * tileSize));
-            win.draw(cell);
+            window.draw(cell);
 
             if (piece != 0) {
 
-                checker.setPosition(Vector2f(x + i * tileSize + 10, y + (7 - j) * tileSize + 10));
+                checkerCircle.setPosition(Vector2f(x + i * tileSize + 10, y + (7 - j) * tileSize + 10));
 
                 if (piece == 1 || piece == 3) {
-                    checker.setFillColor(whiteColor);
+                    checkerCircle.setFillColor(whiteColor);
                 }
                 else if (piece == 2 || piece == 4) {
-                    checker.setFillColor(blackColor);
+                    checkerCircle.setFillColor(blackColor);
                 }
                 if (!isCaptured || i != cx || j != cy) {
-                    win.draw(checker);
+                    window.draw(checkerCircle);
                     if (piece == 3) {
-                        in.setPosition(Vector2f(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5));
-                        in.setFillColor(blackColor);
-                        win.draw(in);
+                        innerCircle.setPosition(Vector2f(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5));
+                        innerCircle.setFillColor(blackColor);
+                        window.draw(innerCircle);
                     }
                     else if (piece == 4) {
-                        in.setPosition(Vector2f(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5));
-                        in.setFillColor(whiteColor);
-                        win.draw(in);
+                        innerCircle.setPosition(Vector2f(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5));
+                        innerCircle.setFillColor(whiteColor);
+                        window.draw(innerCircle);
                     }
                 }
             }
@@ -139,33 +139,33 @@ void TBoard::draw(RenderWindow& win) const {
 
         const float scaleFactor = 50.0f / sprite.getLocalBounds().size.y;
         sprite.setScale({ scaleFactor, scaleFactor });
-        win.draw(sprite);
+        window.draw(sprite);
     }
     if (isCaptured) {
-        CircleShape checker(tileSize / 2 - 10);
-        CircleShape in(tileSize / 4 - 5);
+        CircleShape checkerCircle(tileSize / 2 - 10);
+        CircleShape innerCircle(tileSize / 4 - 5);
 
         if ((field[cx][cy] == 1) || (field[cx][cy] == 3)) {
-            checker.setFillColor(Color(230, 230, 230));
+            checkerCircle.setFillColor(Color(230, 230, 230));
         }
         else if ((field[cx][cy] == 2) || (field[cx][cy] == 4)) {
-            checker.setFillColor(Color(30, 30, 30));
+            checkerCircle.setFillColor(Color(30, 30, 30));
         }
-        checker.setPosition(Vector2f(posx - tileSize / 2 + 10, posy - tileSize / 2 + 10));
+        checkerCircle.setPosition(Vector2f(posx - tileSize / 2 + 10, posy - tileSize / 2 + 10));
 
         if (field[cx][cy]) {
-            win.draw(checker);
+            window.draw(checkerCircle);
         }
 
         if (field[cx][cy] == 3) {
-            in.setPosition(Vector2f(posx - tileSize / 4 + 5, posy - tileSize / 4 + 5));
-            in.setFillColor(Color(30, 30, 30));
-            win.draw(in);
+            innerCircle.setPosition(Vector2f(posx - tileSize / 4 + 5, posy - tileSize / 4 + 5));
+            innerCircle.setFillColor(Color(30, 30, 30));
+            window.draw(innerCircle);
         }
         else if (field[cx][cy] == 4) {
-            in.setPosition(Vector2f(posx - tileSize / 4 + 5, posy - tileSize / 4 + 5));
-            in.setFillColor(Color(230, 230, 230));
-            win.draw(in);
+            innerCircle.setPosition(Vector2f(posx - tileSize / 4 + 5, posy - tileSize / 4 + 5));
+            innerCircle.setFillColor(Color(230, 230, 230));
+            window.draw(innerCircle);
         }
     }
 }
@@ -221,9 +221,9 @@ void TLabel::setPosition(Vector2f position) {
     text.setPosition(position);
 }
 
-void TLabel::draw(RenderWindow& win) const {
+void TLabel::draw(RenderWindow& window) const {
     if (visible) {
-        win.draw(text);
+        window.draw(text);
     }
 }
 
@@ -270,9 +270,9 @@ void TObject::setThickness(float thickness) {
     background.setOutlineThickness(thickness);
 }
 
-void TObject::draw(RenderWindow& win) const {
+void TObject::draw(RenderWindow& window) const {
     if (visible) {
-        win.draw(background);
+        window.draw(background);
     }
 }
 
@@ -356,10 +356,10 @@ void TButton::onRelease() {
     background.setFillColor(Color::Green);
 }
 
-void TButton::draw(RenderWindow& win) const {
+void TButton::draw(RenderWindow& window) const {
     if (visible) {
-        TObject::draw(win);
-        win.draw(caption);
+        TObject::draw(window);
+        window.draw(caption);
     }
 }
 
@@ -409,11 +409,11 @@ void TChoice::setSize(Vector2f _size) {
 
 void TChoice::onRelease() { }
 
-void TChoice::draw(RenderWindow& win) const {
+void TChoice::draw(RenderWindow& window) const {
     if (visible) {
-        TObject::draw(win);
+        TObject::draw(window);
         if (status) {
-            win.draw(in);
+            window.draw(in);
         }
     }
 }
@@ -455,12 +455,12 @@ void TBar::setSecondColor(Color color) {
     second.setFillColor(color);
 }
 
-void TBar::draw(RenderWindow& win) const {
+void TBar::draw(RenderWindow& window) const {
     if (visible) {
-        TObject::draw(win);
-        win.draw(first);
-        win.draw(second);
-        win.draw(text);
+        TObject::draw(window);
+        window.draw(first);
+        window.draw(second);
+        window.draw(text);
     }
 }
 
@@ -822,10 +822,10 @@ void TCommentSection::setValues(vector<MoveData>& vdata) {
     }
 }
 
-void TCommentSection::draw(RenderWindow& win) const {
-    TObject::draw(win);
-    std::ranges::for_each(vText, [&win](const auto& elem) {
-        win.draw(elem);
+void TCommentSection::draw(RenderWindow& window) const {
+    TObject::draw(window);
+    std::ranges::for_each(vText, [&window](const auto& elem) {
+        window.draw(elem);
     });
 }
 
@@ -1035,31 +1035,27 @@ void TInput::onPress() {
     isSelected = visible;
 }
 
-void TInput::onKeyPress(char inputChar) {
+void TInput::onKeyPress(char symbol) {
 
-    if (isSelected) {
-        string temp = text.getString();
+    if (isSelected && visible) {
+        string currentString = text.getString();
+        const int size = static_cast<int>(currentString.size());
 
-        if (letters && inputChar >= 0 && inputChar <= 25) {
-            if (temp.size() < limit) {
-                temp.push_back('A' + inputChar);
+        if (size < limit) {
+            if (letters && std::isalpha(symbol)) {
+                currentString.push_back(symbol);
+            }
+            else if (numbers && std::isdigit(symbol)) {
+                currentString.push_back(symbol);
+            }
+            else if (dot && symbol == '.') {
+                currentString.push_back(symbol);
             }
         }
-        else if (numbers && inputChar >= 26 && inputChar <= 35) {
-            if (temp.size() < limit) {
-                temp.push_back('0' + inputChar - 26);
-            }
+        if (symbol == '\b' && !currentString.empty()) {
+            currentString.pop_back();
         }
-        else if (dot && inputChar == 50) {
-            if (temp.size() < limit) {
-                temp.push_back('.');
-            }
-        }
-        else if (inputChar == 59 && !temp.empty()) {
-            temp.pop_back();
-        }
-        text.setString(temp);
-
+        text.setString(currentString);
     }
 }
 
@@ -1067,10 +1063,10 @@ void TInput::onRelease() {
     isSelected = false;
 }
 
-void TInput::draw(RenderWindow& win) const {
+void TInput::draw(RenderWindow& window) const {
     if (visible) {
-        TClickable::draw(win);
-        win.draw(text);
+        TClickable::draw(window);
+        window.draw(text);
     }
 }
 
@@ -1134,11 +1130,11 @@ void TWait::setPos() {
     mas[5].setPosition({ x, y + radius / 2 });
 }
 
-void TWait::draw(RenderWindow& win) const {
+void TWait::draw(RenderWindow& window) const {
     if (visible) {
-        for (int i = 0; i < 6; ++i) {
-            win.draw(mas[i]);
-        }
+        std::ranges::for_each(mas, [&window](const auto& elem) {
+            window.draw(elem);
+        });
     }
 }
 
@@ -1200,9 +1196,9 @@ void TClock::release() {
     yourTurn = true;
 }
 
-void TClock::draw(RenderWindow& win) const {
-    TObject::draw(win);
-    win.draw(text);
+void TClock::draw(RenderWindow& window) const {
+    TObject::draw(window);
+    window.draw(text);
 }
 
 void TClock::stop() {

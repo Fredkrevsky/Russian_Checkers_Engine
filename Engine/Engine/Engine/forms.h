@@ -37,25 +37,29 @@ public:
 
         while (window.isOpen())
         {
-            while (const optional event = window.pollEvent())
-            {
+            while (const std::optional<Event> event = window.pollEvent()) {
                 auto mousePos = Mouse::getPosition(window);
+
                 if (event->is<Event::Closed>()) {
                     onClose();
                 }
                 else if (event->is<Event::MouseButtonPressed>()) {
-                    
                     onLeftButtonPress(mousePos);
                 }
                 else if (event->is<Event::MouseButtonReleased>()) {
-                    auto mousePos = Mouse::getPosition();
                     onLeftButtonRelease(mousePos);
                 }
                 else if (event->is<Event::KeyPressed>()) {
-                    //onKeyDown();
+                    const auto& keyEvent = event->getIf<Event::KeyPressed>();
+                    onKeyDown(keyEvent->code);
                 }
                 else if (event->is<Event::KeyReleased>()) {
-
+                    // Опционально обработка KeyReleased
+                }
+                else if (event->is<Event::TextEntered>()) {
+                    const auto& textEvent = event->getIf<Event::TextEntered>();
+                    char symbol = static_cast<char>(textEvent->unicode);
+                    onChar(symbol);
                 }
             }
             draw();
@@ -88,7 +92,6 @@ protected:
     virtual void onChar(char symbol) { }
 };
 
-
 class TAnalysicsForm final : public TForm {
 public:
     TAnalysicsForm(vector<MoveData>& data);
@@ -108,7 +111,6 @@ private:
     TCommentSection section;
 };
 
-
 class TEngineForm final: public TForm {
 public:
     TEngineForm();
@@ -118,8 +120,8 @@ protected:
     void onDraw() const override;
 
 private:
-    bool LP = false;
-    bool LR = false;
+    bool LeftPressed = false;
+    bool LeftReleased = false;
 
     TButton exitB, flipB, analysicsB;
     TLabel resultLabel, timeLabel;
@@ -178,6 +180,7 @@ protected:
     void onDraw() const override;
 
     void onLeftButtonPress(Vector2i mousePosition) override;
+    void onChar(char symbol) override;
 
 private:
     vector<TLabel> vLabel;

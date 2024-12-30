@@ -250,6 +250,7 @@ TStartForm::TStartForm() : TForm(START_FORM_SIZE, "Start form") {
     startB.setOnPress([&]() {
         window.setVisible(false);
         engineForm.reset(new TEngineForm());
+
         engineForm->poll();
         window.setVisible(true);
     });
@@ -291,6 +292,11 @@ void TStartForm::onLeftButtonPress(Vector2i mousePosition) {
     }
 }
 
+void TStartForm::onChar(char symbol) {
+    vInput[0].onKeyPress(symbol);
+    vInput[1].onKeyPress(symbol);
+}
+
 //void TStartForm::poll() {
 //
 //    while (win.isOpen()) {
@@ -308,12 +314,7 @@ void TStartForm::onLeftButtonPress(Vector2i mousePosition) {
 //                //    open = false;
 //                //}
 //            }
-//            else if (event->is<Event::TextEntered>()) {
-//                onChar();
-//                //char key = 'a';//static_cast<char>(event.value.text.scancode);
-//                //vInput[0].onKeyPress(key);
-//                //vInput[1].onKeyPress(key);
-//            }
+//            
 //        }
 //        draw();
 //    }
