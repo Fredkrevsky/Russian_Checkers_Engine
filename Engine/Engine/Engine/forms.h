@@ -21,75 +21,31 @@ using std::vector, std::array, std::thread, std::mutex, std::unique_ptr, std::op
 
 class TForm {
 public:
-    TForm(Vector2u windowSize, const string& title)
-        : window(VideoMode(windowSize), title, Style::Close) {
+    TForm(Vector2u windowSize, const string& title);
 
-        window.setFramerateLimit(CURRENT_FPS);
-        window.setVerticalSyncEnabled(true);
+    virtual ~TForm();
 
-        background.setSize(Vector2f(windowSize));
-        background.setFillColor(Color::White);
-    }
-
-    virtual ~TForm() { }
-
-    void poll() {
-
-        while (window.isOpen())
-        {
-            while (const std::optional<Event> event = window.pollEvent()) {
-                auto mousePos = Mouse::getPosition(window);
-
-                if (event->is<Event::Closed>()) {
-                    onClose();
-                }
-                else if (event->is<Event::MouseButtonPressed>()) {
-                    onLeftButtonPress(mousePos);
-                }
-                else if (event->is<Event::MouseButtonReleased>()) {
-                    onLeftButtonRelease(mousePos);
-                }
-                else if (event->is<Event::KeyPressed>()) {
-                    const auto& keyEvent = event->getIf<Event::KeyPressed>();
-                    onKeyDown(keyEvent->code);
-                }
-                else if (event->is<Event::KeyReleased>()) {
-                    // Опционально обработка KeyReleased
-                }
-                else if (event->is<Event::TextEntered>()) {
-                    const auto& textEvent = event->getIf<Event::TextEntered>();
-                    char symbol = static_cast<char>(textEvent->unicode);
-                    onChar(symbol);
-                }
-            }
-            draw();
-        }
-    }
-
-    void draw() {
-        window.clear();
-        window.draw(background);
-        onDraw();
-        window.display();
-    }
+    void poll();
 
 protected:
     mutable RenderWindow window;
     RectangleShape background;
     
-    virtual void onDraw() const { }
+    void draw();
+    
+    virtual void onCreate();
+    
+    virtual void onDraw() const;
 
-    virtual void onClose() {
-        window.close();
-    }
+    virtual void onClose();
 
-    virtual void onKeyDown(Keyboard::Key key) { }
+    virtual void onKeyDown(Keyboard::Key key);
 
-    virtual void onLeftButtonPress(Vector2i position) { }
+    virtual void onLeftButtonPress(Vector2i position);
 
-    virtual void onLeftButtonRelease(Vector2i position) { }
+    virtual void onLeftButtonRelease(Vector2i position);
 
-    virtual void onChar(char symbol) { }
+    virtual void onChar(char symbol);
 };
 
 class TAnalysicsForm final : public TForm {
@@ -177,6 +133,7 @@ public:
     ~TStartForm();
 
 protected:
+    void onCreate() override;
     void onDraw() const override;
 
     void onLeftButtonPress(Vector2i mousePosition) override;
@@ -187,7 +144,6 @@ private:
     vector<TChoice> vChoice;
     vector<TInput> vInput;
     TButton startB, exitB;
-    const array<int, 4> masDepth =  { 4, 8, 10, 12 };
 
     unique_ptr<TEngineForm> engineForm;
     unique_ptr<TPvpForm> pvpForm;

@@ -7,7 +7,83 @@
 #define ENGINE_FORM_SIZE Vector2u{1200, 900}
 #define ANALYSICS_FORM_SIZE Vector2u{1200, 900}
 
+#define EASY_DEPTH 4
+#define MEDIUM_DEPTH 8
+#define HARD_DEPTH 10
+#define IMPOSSIBLE_DEPTH 12
+
 using std::pair;
+
+TForm::TForm(Vector2u windowSize, const string& title)
+    : window(VideoMode(windowSize), title, Style::Close) {
+
+    window.setFramerateLimit(CURRENT_FPS);
+    window.setVerticalSyncEnabled(true);
+
+    background.setSize(Vector2f(windowSize));
+    background.setFillColor(Color::White);
+}
+
+TForm::~TForm() {}
+
+void TForm::onCreate() { }
+
+void TForm::poll() {
+
+    onCreate();
+
+    while (window.isOpen())
+    {
+        while (const std::optional<Event> event = window.pollEvent()) {
+            auto mousePos = Mouse::getPosition(window);
+
+            if (event->is<Event::Closed>()) {
+                onClose();
+            }
+            else if (event->is<Event::MouseButtonPressed>()) {
+                onLeftButtonPress(mousePos);
+            }
+            else if (event->is<Event::MouseButtonReleased>()) {
+                onLeftButtonRelease(mousePos);
+            }
+            else if (event->is<Event::KeyPressed>()) {
+                const auto& keyEvent = event->getIf<Event::KeyPressed>();
+                onKeyDown(keyEvent->code);
+            }
+            else if (event->is<Event::KeyReleased>()) {
+
+            }
+            else if (event->is<Event::TextEntered>()) {
+                const auto& textEvent = event->getIf<Event::TextEntered>();
+                char symbol = static_cast<char>(textEvent->unicode);
+                onChar(symbol);
+            }
+        }
+        draw();
+    }
+}
+
+void TForm::draw() {
+    window.clear();
+    window.draw(background);
+    onDraw();
+    window.display();
+}
+
+void TForm::onDraw() const {}
+
+void TForm::onClose() {
+    window.close();
+}
+
+void TForm::onKeyDown(Keyboard::Key key) {}
+
+void TForm::onLeftButtonPress(Vector2i position) {}
+
+void TForm::onLeftButtonRelease(Vector2i position) {}
+
+void TForm::onChar(char symbol) {}
+
 
 void TAnalysicsForm::onDraw() const {
     bar.draw(window);
@@ -130,6 +206,8 @@ TStartForm::TStartForm() : TForm(START_FORM_SIZE, "Start form") {
     background.setSize(Vector2f(window.getSize()));
     background.setFillColor(Color::White);
 
+    vLabel.reserve(13);
+
     vLabel.push_back(TLabel("Choose mode:", Vector2f(320, 30)));
     vLabel.push_back(TLabel("vs Player", Vector2f(245, 90)));
     vLabel.push_back(TLabel("vs Engine", Vector2f(245, 140)));
@@ -147,6 +225,22 @@ TStartForm::TStartForm() : TForm(START_FORM_SIZE, "Start form") {
     vLabel.push_back(TLabel("Enter server port", Vector2f(300, 525)));
 
     turn = true;
+    depth = IMPOSSIBLE_DEPTH;
+
+    TInput tempI;
+    tempI.setThickness(2);
+    tempI.setVisible(true);
+    tempI.setSize({ 300, 35 });
+
+    tempI.setPosition({ 225, 475 });
+    tempI.setLimit(20);
+    tempI.setLimit(15);
+    vInput.push_back(tempI);
+    tempI.setPosition({ 225, 575 });
+    tempI.setLimit(5);
+    vInput.push_back(tempI);
+
+    vChoice.reserve(8);
 
     vChoice.push_back(TChoice({ 445, 97 }, [&]() {
         vChoice[0].setStatus(true);
@@ -162,7 +256,7 @@ TStartForm::TStartForm() : TForm(START_FORM_SIZE, "Start form") {
         vLabel[11].setVisible(true);
         vLabel[12].setVisible(true);
         pvp = true;
-    }, true));
+        }, true));
 
     vChoice.push_back(TChoice({ 445, 147 }, [&]() {
         vChoice[1].setStatus(true);
@@ -178,96 +272,72 @@ TStartForm::TStartForm() : TForm(START_FORM_SIZE, "Start form") {
         vLabel[11].setVisible(false);
         vLabel[12].setVisible(false);
         pvp = false;
-    }, false));
+        }, false));
 
     vChoice.push_back(TChoice({ 445, 285 }, [&]() {
         turn = true;
         vChoice[2].setStatus(true);
-        vChoice[3].setStatus(false);    
-    }, true, false));
+        vChoice[3].setStatus(false);
+        }, true, false));
 
     vChoice.push_back(TChoice({ 445, 335 }, [&]() {
         turn = false;
         vChoice[2].setStatus(false);
-        vChoice[3].setStatus(true);    
-    }, false, false));
-
-    vChoice.push_back(TChoice({ 445, 475 }, [&]() {
-        vChoice[4].setStatus(true);
-        vChoice[5].setStatus(false);
-        vChoice[6].setStatus(false);
-        vChoice[7].setStatus(false);
-        depth = masDepth[0];
+        vChoice[3].setStatus(true);
         }, false, false));
 
-    vChoice.push_back(TChoice({ 445, 525 }, [&]() {
-        vChoice[4].setStatus(false);
-        vChoice[5].setStatus(true);
-        vChoice[6].setStatus(false);
-        vChoice[7].setStatus(false);
-        depth = masDepth[1];
+    auto setDifficultyLevel = [this](const int index) {
+        auto start = std::next(vChoice.begin(), 4);
+        auto end = std::next(vChoice.begin(), 8);
+        std::for_each(start, end, [i = 0, index](auto& choice) mutable {
+            bool status = i == index;
+            choice.setStatus(status);
+            i++;
+            });
+        };
+
+    vChoice.push_back(TChoice({ 445, 475 }, [=]() {
+        setDifficultyLevel(0);
+        depth = EASY_DEPTH;
         }, false, false));
 
-    vChoice.push_back(TChoice({ 445, 575 }, [&]() {
-        vChoice[4].setStatus(false);
-        vChoice[5].setStatus(false);
-        vChoice[6].setStatus(true);
-        vChoice[7].setStatus(false);
-        depth = masDepth[2];
+    vChoice.push_back(TChoice({ 445, 525 }, [=]() {
+        setDifficultyLevel(1);
+        depth = MEDIUM_DEPTH;
         }, false, false));
 
-    vChoice.push_back(TChoice({ 445, 625 }, [&]() {
-        vChoice[4].setStatus(false);
-        vChoice[5].setStatus(false);
-        vChoice[6].setStatus(false);
-        vChoice[7].setStatus(true);
-        depth = masDepth[3];
+    vChoice.push_back(TChoice({ 445, 575 }, [=]() {
+        setDifficultyLevel(2);
+        depth = HARD_DEPTH;
+        }, false, false));
+
+    vChoice.push_back(TChoice({ 445, 625 }, [=]() {
+        setDifficultyLevel(3);
+        depth = IMPOSSIBLE_DEPTH;
         }, true, false));
 
-    depth = masDepth[3];
-
-    TInput tempI;
-    tempI.setThickness(2);
-    tempI.setVisible(true);
-    tempI.setSize({ 300, 35 });
-    tempI.setPosition({ 225, 475 });
-    tempI.setLimit(20);
-    tempI.numbers = true;
-    tempI.dot = true;
-    tempI.setLimit(15);
-    vInput.push_back(tempI);
-    tempI.setPosition({ 225, 575 });
-    tempI.dot = false;
-    tempI.setLimit(5);
-    vInput.push_back(tempI);
-
-
-    startB.setSize({ 125, 50 });
-    startB.setColor(Color::Green);
     startB.setCaption("Start");
     startB.setPosition({ 240, 720 });
-    startB.setThickness(2);
     startB.setOnPress([&]() {
         window.setVisible(false);
         engineForm.reset(new TEngineForm());
 
         engineForm->poll();
         window.setVisible(true);
-    });
+        });
 
-    exitB.setSize({ 125, 50 });
-    exitB.setColor(Color::Green);
     exitB.setCaption("Exit");
     exitB.setPosition({ 400, 720 });
-    exitB.setThickness(2);
     exitB.setOnPress([&]() {
         window.close();
-    });
+        });
 
     draw();
 }
 
 TStartForm::~TStartForm() { }
+
+void TStartForm::onCreate() { }
 
 void TStartForm::onLeftButtonPress(Vector2i mousePosition) {
     if (startB.isPressed(mousePosition)) {

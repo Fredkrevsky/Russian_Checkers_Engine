@@ -321,15 +321,22 @@ TButton::TButton() : caption(font) {
     caption.setPosition({0, 0});
     caption.setCharacterSize(fontSize);
     caption.setFillColor(Color::Black);
+
+    setColor(Color::Green);
+    setThickness(2);
+    setSize({ 125, 50 });
 }
 
-TButton::TButton(const string& _caption, Vector2f _position, Vector2f _size) : caption(font) {
+TButton::TButton(const string& _caption, Vector2f _position) : caption(font) {
     caption.setCharacterSize(fontSize);
     caption.setFillColor(Color::Black);
     caption.setString(_caption);
 
+    setColor(Color::Green);
+    setThickness(2);
+
     setPosition(_position);
-    setSize(_size);
+    setSize({ 125, 50 });
 }
 
 void TButton::setCaption(const string& _caption) {
@@ -1013,22 +1020,31 @@ void AnalysicsController::getCurr() {
 }
 
 
-TInput::TInput() : TClickable(), text(font) {
+TInput::TInput() : text(font) {
     text.setPosition(Vector2f( 3, 3 ));
     text.setCharacterSize(fontSize);
     text.setFillColor(Color::Black);
     setColor(Color::White);
     text.setString("");
 
-    limit = 15;
     isSelected = false;
 }
 
-bool TInput::checkchar(char toCheck) {
-    return (toCheck >= '0') && (toCheck <= '9') || 
-        (toCheck >= 'a') && (toCheck <= 'z') || 
-        (toCheck >= 'A') && (toCheck <= 'Z') || 
-        (toCheck == '_');
+TInput::TInput(Vector2f _position, MODE mode, int _maxTextLength) : text(font) {
+    text.setCharacterSize(fontSize);
+    text.setFillColor(Color::Black);
+
+    maxTextLength = _maxTextLength;
+
+    switch (mode) {
+    case IP:
+        numbers = true;
+        dot = true;
+        break;
+    case PORT: 
+        numbers = true;
+        break;
+    }
 }
 
 void TInput::onPress() {
@@ -1041,7 +1057,7 @@ void TInput::onKeyPress(char symbol) {
         string currentString = text.getString();
         const int size = static_cast<int>(currentString.size());
 
-        if (size < limit) {
+        if (size < maxTextLength) {
             if (letters && std::isalpha(symbol)) {
                 currentString.push_back(symbol);
             }
@@ -1085,8 +1101,8 @@ void TInput::setSize(Vector2f _size) {
     TClickable::setSize(_size);
 }
 
-void TInput::setLimit(int lim) {
-    limit = lim;
+void TInput::setLimit(int _maxTextLength) {
+    maxTextLength = _maxTextLength;
 }
 
 string TInput::getText() {

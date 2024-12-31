@@ -64,7 +64,7 @@ protected:
 class TButton final : public TClickable {
 public:
     TButton();
-    TButton(const string& _caption, Vector2f _pos, Vector2f _size);
+    TButton(const string& _caption, Vector2f _pos);
 
     void setCaption(const string& _caption);
     void setPosition(Vector2f position) override;
@@ -250,10 +250,15 @@ private:
 
 class TInput final : public TClickable {
 public:
-    bool letters{ false };
-    bool dot{ false };
-    bool numbers{ false };
+    enum MODE {
+        IP,
+        PORT,
+    };
+    
     TInput();
+    TInput(Vector2f _position, MODE mode, int limit);
+
+
     void onPress() override;
     void onKeyPress(char pressed);
     void onRelease();
@@ -264,10 +269,14 @@ public:
     string getText();
 
 private:
-    bool isSelected;
+    bool letters{ false };
+    bool dot{ false };
+    bool numbers{ false };
+    bool isSelected{ false };
     Text text;
-    int limit;
-    bool checkchar(char toCheck);
+    int maxTextLength{ 10 };
+
+    //bool checkchar(char toCheck);
 };
 
 class TWait final : TObject {
