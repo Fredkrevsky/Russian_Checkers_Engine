@@ -185,67 +185,13 @@ public:
     void setComment(MOVE_STATUS comment, mytype x1, mytype y1, mytype x2, mytype y2);
 
 private:
-    bool flipped {false};
     TField field{};
-    mytype x1{}, y1{}, x2{}, y2{};
-    MOVE_STATUS comment;
-
-    Texture forced, best, good, inac, blunder;  //Make array
+    MOVE_STATUS comment{};
+    array<Texture, 5> moveStatusTextures;
     bool isCaptured{false};
+    bool flipped {false};
+    mytype x1{}, y1{}, x2{}, y2{};
     mytype cx{ -1 }, cy{ -1 };
-
-};
-
-class GameController final {
-public:
-    TField field;
-    float assess;
-    int curr, head;
-    bool turn;
-
-    vector<MoveData> gameMoves;
-    GameController();
-    MOVE_RESULT PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2);
-    MOVE_RESULT EngineMove(mytype depth);
-    void getPrev();
-    void getNext();
-    void getCurr();
-
-protected:
-    Engine engine;
-    MOVE_TYPE type;
-    mytype x, y, vec;
-    bool locked = false;
-
-    void getData(MoveData& source);
-    void setData(MoveData& dest);
-
-};
-
-class AnalysicsController final {
-public:
-    TField field;
-    float assess;
-    MOVE_STATUS comment;
-    mytype x1, y1, x2, y2;
-
-    vector<MoveData> gameMoves;
-    AnalysicsController();
-    void evaluate(int index, int depth);
-    void setMoves(vector<MoveData>& tgameMoves);
-    void getPrev();
-    void getNext();
-    void getCurr();
-
-private:
-    bool turn;
-
-    Engine engine;
-    MOVE_TYPE type;
-    mytype x, y, vec;
-    int curr, head;
-    
-    void getData(MoveData& source);
 };
 
 class TInput final : public TClickable {
@@ -257,7 +203,6 @@ public:
     
     TInput();
     TInput(Vector2f _position, MODE mode, int limit);
-
 
     void onPress() override;
     void onKeyPress(char pressed);
@@ -275,8 +220,6 @@ private:
     bool isSelected{ false };
     Text text;
     int maxTextLength{ 10 };
-
-    //bool checkchar(char toCheck);
 };
 
 class TWait final : TObject {
@@ -289,8 +232,7 @@ public:
     void draw(RenderWindow& win) const override;
 
 private:
-    const float s3{ 1.73205f };
-    array<CircleShape, 6> mas;
+    array<CircleShape, 6> circlesArray;
     int current{ 0 };
     int radius{ 100 };
 

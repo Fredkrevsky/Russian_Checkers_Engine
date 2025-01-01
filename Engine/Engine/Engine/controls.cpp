@@ -4,18 +4,20 @@
 using std::string, std::to_string, std::round, std::swap;
 
 
-TBoard::TBoard() : TObject(){
+TBoard::TBoard() {
 
-    x1 = x2 = y1 = y2 = 0;
-    comment = FORCED;
-    flipped = false;
+    static const array<string, 5> texturesPaths = {
+        "Image/best.png",
+        "Image/blunder.png",
+        "Image/forced.png",
+        "Image/good.png",
+        "Image/inaccurasy.png"
+    };
 
-    best.loadFromFile("Image/best.png");
-    blunder.loadFromFile("Image/blunder.png");
-    forced.loadFromFile("Image/forced.png");
-    good.loadFromFile("Image/good.png");
-    inac.loadFromFile("Image/inaccurasy.png");
-    isCaptured = false;
+    std::ranges::for_each(moveStatusTextures, [&, i=0](auto& texture) mutable {
+        moveStatusTextures[0].loadFromFile(texturesPaths[i]);
+        i++;
+    });
 }
 
 void TBoard::setPosition(Vector2f position) {
@@ -67,50 +69,61 @@ void TBoard::draw(RenderWindow& window) const {
     float posx = 0;
     float posy = 0;    //Make class fields
 
-    RectangleShape cell(Vector2f(tileSize, tileSize));
-    CircleShape checkerCircle(tileSize / 2 - 10);
-    CircleShape innerCircle(tileSize / 4 - 5);
+    constexpr float checkerRadius = tileSize / 2.f - 10;
+    constexpr float innerRadius = checkerRadius / 2.f;
+    
+    RectangleShape cell({ tileSize, tileSize });
+    CircleShape checkerCircle(checkerRadius);
+    CircleShape innerCircle(innerRadius);
 
-    Color whiteColor(230, 230, 230), blackColor(30, 30, 30);
-    Color boardFirstColor(233, 237, 204), boardSecondColor(119, 153, 84);
+    constexpr Color whiteColor(230, 230, 230);
+    constexpr Color blackColor(30, 30, 30);
+    constexpr Color boardFirstColor(233, 237, 204);
+    constexpr Color boardSecondColor(119, 153, 84);
 
     const auto& [x, y] = position;
 
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
+    for (int row = 0; row < 8; ++row) {
+        for (int column = 0; column < 8; ++column) {
 
-            const auto piece{ field[i][j] };
+            const auto currentPiece{ field[row][column] };
 
-            if ((i + j) % 2 == 1) {
+            if ((row + column) % 2 == 1) {
                 cell.setFillColor(boardFirstColor);
             }
             else {
                 cell.setFillColor(boardSecondColor);
             }
 
-            cell.setPosition(Vector2f(x + i * tileSize, y + (7 - j) * tileSize));
+            const float cellX = x + row * tileSize;
+            const float cellY = y + (7 - column) * tileSize;
+
+            cell.setPosition({cellX, cellY});
             window.draw(cell);
 
-            if (piece != 0) {
+            if (currentPiece != 0) {
 
-                checkerCircle.setPosition(Vector2f(x + i * tileSize + 10, y + (7 - j) * tileSize + 10));
+                checkerCircle.setPosition({ cellX + 10, cellY + 10 });
 
-                if (piece == 1 || piece == 3) {
+                if (currentPiece == 1 || currentPiece == 3) {
                     checkerCircle.setFillColor(whiteColor);
                 }
-                else if (piece == 2 || piece == 4) {
+                else {
                     checkerCircle.setFillColor(blackColor);
                 }
-                if (!isCaptured || i != cx || j != cy) {
+                if (!isCaptured || row != cx || column != cy) {
                     window.draw(checkerCircle);
-                    if (piece == 3) {
-                        innerCircle.setPosition(Vector2f(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5));
-                        innerCircle.setFillColor(blackColor);
-                        window.draw(innerCircle);
-                    }
-                    else if (piece == 4) {
-                        innerCircle.setPosition(Vector2f(x + i * tileSize + tileSize / 4 + 5, y + (7 - j) * tileSize + tileSize / 4 + 5));
-                        innerCircle.setFillColor(whiteColor);
+                    
+                    if (currentPiece == 3 || currentPiece == 4) {
+                        const float innerCircleX = x + row * tileSize + innerRadius;
+                        const float innerCircleY = y + (7 - column) * tileSize + innerRadius;
+                        innerCircle.setPosition({ innerCircleX, innerCircleY });
+                        if (currentPiece == 3) {
+                            innerCircle.setFillColor(blackColor);
+                        }
+                        else {
+                            innerCircle.setFillColor(whiteColor);
+                        }
                         window.draw(innerCircle);
                     }
                 }
@@ -118,54 +131,50 @@ void TBoard::draw(RenderWindow& window) const {
         }
     }
     if (x1 || y1 || x2 || y2) {
-        Sprite sprite(best);
-        switch (comment) {
-            //case BEST: sprite.setTexture(best); break;
-        case BLUNDER: sprite.setTexture(blunder); break;
-        case FORCED: sprite.setTexture(forced); break;
-        case INACCURACY: sprite.setTexture(inac); break;
-        case GOOD: sprite.setTexture(good); break;
-        }
-        float tempx, tempy;
+        auto& texture = moveStatusTextures[comment];
+        Sprite sprite(texture);
+
+        float spriteX, spriteY;
         if (!flipped) {
-            tempx = x + (x2 + 1) * tileSize - 25;
-            tempy = y + (7 - y2) * tileSize - 25;
+            spriteX = x + (x2 + 1) * tileSize - 25;
+            spriteY = y + (7 - y2) * tileSize - 25;
         }
         else {
-            tempx = x + (8 - x2) * tileSize - 25;
-            tempy = y + y2 * tileSize - 25;
+            spriteX = x + (8 - x2) * tileSize - 25;
+            spriteY = y + y2 * tileSize - 25;
         }
-        sprite.setPosition({ tempx, tempy });
+        sprite.setPosition({ spriteX, spriteY });
 
         const float scaleFactor = 50.0f / sprite.getLocalBounds().size.y;
         sprite.setScale({ scaleFactor, scaleFactor });
         window.draw(sprite);
     }
     if (isCaptured) {
-        CircleShape checkerCircle(tileSize / 2 - 10);
-        CircleShape innerCircle(tileSize / 4 - 5);
 
-        if ((field[cx][cy] == 1) || (field[cx][cy] == 3)) {
-            checkerCircle.setFillColor(Color(230, 230, 230));
-        }
-        else if ((field[cx][cy] == 2) || (field[cx][cy] == 4)) {
-            checkerCircle.setFillColor(Color(30, 30, 30));
-        }
-        checkerCircle.setPosition(Vector2f(posx - tileSize / 2 + 10, posy - tileSize / 2 + 10));
+        auto capturedPiece = field[cx][cy];
+        if (capturedPiece != 0) {
+            if (capturedPiece == 1 || capturedPiece == 3) {
+                checkerCircle.setFillColor(whiteColor);
+            }
+            else {
+                checkerCircle.setFillColor(blackColor);
+            }
+            checkerCircle.setPosition({ posx - checkerRadius, posy - checkerRadius });
 
-        if (field[cx][cy]) {
             window.draw(checkerCircle);
-        }
 
-        if (field[cx][cy] == 3) {
-            innerCircle.setPosition(Vector2f(posx - tileSize / 4 + 5, posy - tileSize / 4 + 5));
-            innerCircle.setFillColor(Color(30, 30, 30));
-            window.draw(innerCircle);
-        }
-        else if (field[cx][cy] == 4) {
-            innerCircle.setPosition(Vector2f(posx - tileSize / 4 + 5, posy - tileSize / 4 + 5));
-            innerCircle.setFillColor(Color(230, 230, 230));
-            window.draw(innerCircle);
+            if (capturedPiece == 3 || capturedPiece == 4) {
+                const float innerCircleX = posx - innerRadius;
+                const float innerCircleY = posy - innerRadius;
+                innerCircle.setPosition({ innerCircleX, innerCircleY });
+                if (capturedPiece == 3) {
+                    innerCircle.setFillColor(blackColor);
+                }
+                else {
+                    innerCircle.setFillColor(whiteColor);
+                }
+                window.draw(innerCircle);
+            }
         }
     }
 }
@@ -185,12 +194,12 @@ void TBoard::uncatch() {
     isCaptured = false;
 }
 
-void TBoard::setComment(MOVE_STATUS tcomment, mytype tx1, mytype ty1, mytype tx2, mytype ty2) {
-    x1 = tx1;
-    y1 = ty1;
-    x2 = tx2;
-    y2 = ty2;
-    comment = tcomment;
+void TBoard::setComment(MOVE_STATUS _comment, mytype _x1, mytype _y1, mytype _x2, mytype _y2) {
+    x1 = _x1;
+    y1 = _y1;
+    x2 = _x2;
+    y2 = _y2;
+    comment = _comment;
 }
 
 
@@ -837,189 +846,6 @@ void TCommentSection::draw(RenderWindow& window) const {
 }
 
 
-void GameController::getData(MoveData& source) {
-    assess = source.assess;
-    memcpy(field, source.field, 64);
-    type = source.type;
-    vec = source.vec;
-    x = source.x;
-    y = source.y;
-}
-
-void GameController::setData(MoveData& dest) {
-    dest.assess = assess;
-    dest.x = x;
-    dest.y = y;
-    memcpy(dest.field, field, 64);
-    memcpy(dest.oldfield, field, 64);
-    dest.turn = turn;
-    dest.type = type;
-    dest.vec = vec;
-}
-
-GameController::GameController() {
-    type = MOVE;
-    x = y = vec = 0;
-    turn = true;
-    curr = 0;
-    head = 0;
-    assess = 0;
-    BInit(field);
-
-    MoveData temp;
-    setData(temp);
-    temp.coord[0] = 0;
-    temp.coord[1] = 0;
-    temp.coord[2] = 0;
-    temp.coord[3] = 0;
-
-    gameMoves.push_back(temp);
-}
-
-MOVE_RESULT GameController::PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2) {
-    if (curr == head && !locked) {
-
-        MoveData data;
-        setData(data);
-        data.coord[0] = x1;
-        data.coord[1] = y1;
-        data.coord[2] = x2;
-        data.coord[3] = y2;
-
-        MoveData temp = data;
-        MOVE_RESULT result = engine.PlayerMove(data);
-        if (result != INVALID_COORD) {
-            memcpy(temp.field, data.field, 64);
-            gameMoves.push_back(temp);
-            getData(data);
-            if (result == SUCCESS) {
-                turn = !turn;
-            }
-            else if (result == WIN) {
-                locked = true;
-            }
-            head++;
-            curr++;
-        }
-        return result;
-    }
-    return MOVE_RESULT::INVALID_COORD;
-}
-
-MOVE_RESULT GameController::EngineMove(mytype depth) {
-    if (!locked) {
-        getCurr();
-
-        MoveData data;
-        setData(data);
-
-        MoveData temp = data;
-        MOVE_RESULT result = engine.EngineMove(data, depth);
-        if (result == ONE_MORE || result == SUCCESS || result == WIN) {
-            memcpy(temp.field, data.field, 64);
-            memcpy(temp.coord, data.coord, 4);
-            gameMoves.push_back(temp);
-            getData(data);
-            if (result == SUCCESS) {
-                turn = !turn;
-            }
-            else if (result == WIN) {
-                locked = true;
-            }
-            curr++;
-            head++;
-        }
-        return result;
-    }
-    return INVALID_COORD;
-}
-
-void GameController::getPrev() {
-    if (curr > 0) {
-        curr--;
-        MoveData temp = gameMoves[curr];
-        memcpy(field, temp.field, 64);
-        assess = temp.assess;
-    }
-}
-
-void GameController::getNext() {
-    if (curr < head) {
-        curr++;
-        MoveData temp = gameMoves[curr];
-        memcpy(field, temp.field, 64);
-        assess = temp.assess;
-    }
-}
-
-void GameController::getCurr() {
-    if (curr != head) {
-        curr = head;
-        MoveData temp = gameMoves[curr];
-        memcpy(field, temp.field, 64);
-        assess = temp.assess;
-    }
-}
-
-
-void AnalysicsController::getData(MoveData& source) {
-    assess = source.assess;
-    memcpy(field, source.field, 64);
-    type = source.type;
-    vec = source.vec;
-    x = source.x;
-    y = source.y;
-    x1 = source.coord[0];
-    y1 = source.coord[1];
-    x2 = source.coord[2];
-    y2 = source.coord[3];
-    comment = source.comment;
-}
-
-AnalysicsController::AnalysicsController() {
-
-    x1 = x2 = y1 = y2 = 0;
-    comment = FORCED;
-    type = MOVE;
-    x = y = vec = 0;
-    turn = true;
-    curr = 0;
-    head = 0;
-    assess = 0;
-    BInit(field);
-
-}
-
-void AnalysicsController::evaluate(int index, int depth) {
-    engine.evaluate(gameMoves[index], depth);
-}
-
-void AnalysicsController::setMoves(vector<MoveData>& tgameMoves) {
-    gameMoves = tgameMoves;
-}
-
-void AnalysicsController::getPrev() {
-    if (curr > 0) {
-        curr--;
-        getData(gameMoves[curr]);
-    }
-}
-
-void AnalysicsController::getNext() {
-    if (curr < gameMoves.size() - 1) {
-        curr++;
-        getData(gameMoves[curr]);
-    }
-}
-
-void AnalysicsController::getCurr() {
-    if (curr != head) {
-        curr = head;
-        getData(gameMoves[curr]);
-    }
-}
-
-
 TInput::TInput() : text(font) {
     text.setPosition(Vector2f( 3, 3 ));
     text.setCharacterSize(fontSize);
@@ -1112,18 +938,18 @@ string TInput::getText() {
 
 TWait::TWait() {
     for (int i = 0; i < 6; ++i) {
-        mas[i].setFillColor(Color::White);
-        mas[i].setRadius(30);
-        mas[i].setOutlineColor(Color::Black);
-        mas[i].setOutlineThickness(3);
+        circlesArray[i].setFillColor(Color::White);
+        circlesArray[i].setRadius(30);
+        circlesArray[i].setOutlineColor(Color::Black);
+        circlesArray[i].setOutlineThickness(3);
     }
     setPos();
 }
 
 void TWait::setNext() {
-    mas[current].setFillColor(Color::White);
+    circlesArray[current].setFillColor(Color::White);
     current = (current + 1) % 6;
-    mas[current].setFillColor(Color::Green);
+    circlesArray[current].setFillColor(Color::Green);
 }
 
 void TWait::setPosition(Vector2f _position) {
@@ -1136,19 +962,20 @@ void TWait::setRadius(int tradius) {
 }
 
 void TWait::setPos() {
+    constexpr float sqrt3 = 1.73205080757f;
     const auto& [x, y] = position;
 
-    mas[0].setPosition({ x + radius * s3 / 2, y });
-    mas[1].setPosition({ x + radius * s3, y + radius / 2 });
-    mas[2].setPosition({ x + radius * s3, y + 3 * radius / 2 });
-    mas[3].setPosition({ x + radius * s3 / 2, y + 2 * radius });
-    mas[4].setPosition({ x, y + 3 * radius / 2 });
-    mas[5].setPosition({ x, y + radius / 2 });
+    circlesArray[0].setPosition({ x + radius * sqrt3 / 2.f, y });
+    circlesArray[1].setPosition({ x + radius * sqrt3, y + radius / 2 });
+    circlesArray[2].setPosition({ x + radius * sqrt3, y + 3 * radius / 2 });
+    circlesArray[3].setPosition({ x + radius * sqrt3 / 2.f, y + 2 * radius });
+    circlesArray[4].setPosition({ x, y + 3 * radius / 2 });
+    circlesArray[5].setPosition({ x, y + radius / 2 });
 }
 
 void TWait::draw(RenderWindow& window) const {
     if (visible) {
-        std::ranges::for_each(mas, [&window](const auto& elem) {
+        std::ranges::for_each(circlesArray, [&window](const auto& elem) {
             window.draw(elem);
         });
     }

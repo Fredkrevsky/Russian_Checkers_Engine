@@ -128,7 +128,7 @@ TAnalysicsForm::TAnalysicsForm(std::vector<MoveData>& data) :
     bar.setValue(0.0);
     draw();
 
-    for (int i = 1, size = control.gameMoves.size(); i < size; i++) {
+    for (int i = 1, size = static_cast<int>(control.gameMoves.size()); i < size; i++) {
         control.evaluate(i, 10);
         const float progress = static_cast<float>(i) / size;
         pbar.setValue(progress);
@@ -367,28 +367,7 @@ void TStartForm::onChar(char symbol) {
     vInput[1].onKeyPress(symbol);
 }
 
-//void TStartForm::poll() {
-//
-//    while (win.isOpen()) {
-//
-//        while (const std::optional event = win.pollEvent()) {
-//            else if (event->is<Event::MouseButtonPressed>()) {
-//                //else if (startB.isPressed(pos)) {
-//                //    if (!pvp/* || pvp && vInput[1].getText().size() && socket.connect(vInput[0].getText(), stoi(vInput[1].getText())) == Socket::Done*/) {
-//                //        win.close();
-//                //        open = true;
-//                //    }
-//                //}
-//                //else if (exitB.isPressed(pos)) {
-//                //    win.close();
-//                //    open = false;
-//                //}
-//            }
-//            
-//        }
-//        draw();
-//    }
-//}
+
 
 void TEngineForm::onDraw() const {
     board.draw(window);

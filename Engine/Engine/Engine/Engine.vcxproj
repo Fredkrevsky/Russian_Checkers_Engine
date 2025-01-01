@@ -135,6 +135,7 @@
     <ClCompile Include="controls.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="forms.cpp" />
+    <ClCompile Include="GameControllers.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PossibleMoves.cpp" />
   </ItemGroup>
@@ -150,6 +151,7 @@
     <ClInclude Include="controls.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="forms.h" />
+    <ClInclude Include="GameControllers.h" />
     <ClInclude Include="PossibleMoves.h" />
     <ClInclude Include="ThreadPool.h" />
   </ItemGroup>

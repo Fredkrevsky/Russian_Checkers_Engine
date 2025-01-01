@@ -1,6 +1,7 @@
 #pragma once
 #include <SFML/Network.hpp>
 #include "controls.h"
+#include "GameControllers.h"
 #include <array>
 #include <mutex>
 #include <vector>
@@ -76,8 +77,8 @@ protected:
     void onDraw() const override;
 
 private:
-    bool LeftPressed = false;
-    bool LeftReleased = false;
+    bool LeftPressed{ false };
+    bool LeftReleased{ false };
 
     TButton exitB, flipB, analysicsB;
     TLabel resultLabel, timeLabel;
@@ -97,11 +98,10 @@ public:
 protected:
     void onDraw() const override;
 
-
 private:
     bool turn{ true };
-    bool LP{ false };
-    bool LR{ false };
+    bool LeftPressed{ false };
+    bool LeftReleased{ false };
     bool connected{ false };
 
     vector<int> vMoves;
