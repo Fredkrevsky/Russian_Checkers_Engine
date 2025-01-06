@@ -5,30 +5,36 @@
 
 using std::max, std::min, std::vector, std::future;
 
+constexpr int16_t WHITE_WIN_ASSESS = 1000;
+constexpr int16_t BLACK_WIN_ASSESS = -1000;
+
 #ifdef THREADS
-Engine::Engine() : threadPool(50) { }
-void Engine::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vec, bool turn, int depth) {
+Engine::Engine() : threadPool(12) { }
+void Engine::fill(AssessMoveData& moveData, uint8_t depth) {
+	auto& [field, type, coord, x, y, direction, turn, assess] = moveData;
+
 	TAM AllMoves;
-	mytype len = 0;
-	bool ntb = PMFill(field, type, AllMoves, &len, turn, x, y, vec);
+	uint8_t len = 0;
+	bool ntb = PMFill(field, type, AllMoves, &len, turn, x, y, direction);
 
-	vector<future<MoveData>> futures;
+	vector<future<AssessMoveData>> futures;
 
-	for (mytype i = 0; i < len; i++) {
-		futures.emplace_back(threadPool.add_task([=, &field]() -> MoveData {
-			MoveData temp;
+	for (uint8_t i = 0; i < len; i++) {
+		futures.emplace_back(threadPool.add_task([=, &field]() -> AssessMoveData {
+			AssessMoveData temp(field);
 			memcpy(temp.field, field, 64);
 
-			mytype x1 = AllMoves[i][0];
-			mytype y1 = AllMoves[i][1];
-			mytype x2 = AllMoves[i][2];
-			mytype y2 = AllMoves[i][3];
+			const auto& move = AllMoves[i];
+			uint8_t x1 = move[0];
+			uint8_t y1 = move[1];
+			uint8_t x2 = move[2];
+			uint8_t y2 = move[3];
 
-			memcpy(temp.coord, AllMoves[i], 4);
+			temp.coord = move;
 
 			if (ntb) {
 				if (temp.field[x1][y1] >= 3) {
-					DamkaBeat(temp.field, x1, y1, x2, y2, vec);
+					DamkaBeat(temp.field, x1, y1, x2, y2, direction);
 				}
 				else {
 					Beat(temp.field, x1, y1, x2, y2);
@@ -36,31 +42,33 @@ void Engine::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vec,
 				temp.x = x2;
 				temp.y = y2;
 				temp.type = BEAT;
-				temp.vec = GetMode(x1, y1, x2, y2, vec);
-				temp.assess = mmAB(temp.field, x2, y2, temp.vec, depth, -100, 100, turn);
+				temp.direction = GetMode(x1, y1, x2, y2, direction);
+				temp.assess = mmAB(temp, BLACK_WIN_ASSESS, WHITE_WIN_ASSESS, depth);
 			}
 			else {
 				Move(temp.field, x1, y1, x2, y2);
 				temp.x = 0;
 				temp.y = 0;
 				temp.type = MOVE;
-				temp.vec = 0;
-				temp.assess = mmAB(temp.field, depth - 1, -100, 100, !turn);
+				temp.direction = NONE;
+				temp.turn = !temp.turn;
+				temp.assess = mmAB(temp, BLACK_WIN_ASSESS, WHITE_WIN_ASSESS, depth - 1);
 			}
 			return temp;
 			}));
 	}
 
-	moves.clear();
-	std::transform(futures.begin(), futures.end(), moves.begin(), [](auto& future) -> MoveData {
+	bestMoves.clear();
+	std::transform(futures.begin(), futures.end(), bestMoves.begin(), [](auto& future) -> AssessMoveData {
 		return future.get();
 		});
 
-	std::sort(moves.begin(), moves.end(), [](const auto& f, const auto& s) {
+	std::sort(bestMoves.begin(), bestMoves.end(), [](const auto& f, const auto& s) {
 		return f.assess < s.assess;
 		});
+
 	if (turn) {
-		std::reverse(moves.begin(), moves.end());
+		std::reverse(bestMoves.begin(), bestMoves.end());
 	}
 }
 
@@ -68,21 +76,21 @@ void Engine::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vec,
 
 Engine::Engine() { }
 
-void Engine::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vector, bool turn, int depth) {
+void Engine::fill(TField& field, MOVE_TYPE type, uint8_t x, uint8_t y, uint8_t direction, bool turn, int depth) {
 	TAM AllMoves;
-	mytype len = 0;
-	bool ntb = PMFill(field, type, AllMoves, &len, turn, x, y, vector);
+	uint8_t len = 0;
+	bool ntb = PMFill(field, type, AllMoves, &len, turn, x, y, direction);
 
-	std::vector<std::future<MoveData>> futures;
+	std::direction<std::future<MoveData>> futures;
 
-	for (mytype i = 0; i < len; i++) {
+	for (uint8_t i = 0; i < len; i++) {
 		MoveData temp;
 		memcpy(temp.field, field, 64);
 
-		mytype x1 = AllMoves[i][0];
-		mytype y1 = AllMoves[i][1];
-		mytype x2 = AllMoves[i][2];
-		mytype y2 = AllMoves[i][3];
+		uint8_t x1 = AllMoves[i][0];
+		uint8_t y1 = AllMoves[i][1];
+		uint8_t x2 = AllMoves[i][2];
+		uint8_t y2 = AllMoves[i][3];
 
 		temp.coord[0] = x1;
 		temp.coord[1] = y1;
@@ -91,7 +99,7 @@ void Engine::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vect
 
 		if (ntb) {
 			if (temp.field[x1][y1] >= 3) {
-				DamkaBeat(temp.field, x1, y1, x2, y2, vector);
+				DamkaBeat(temp.field, x1, y1, x2, y2, direction);
 			}
 			else {
 				Beat(temp.field, x1, y1, x2, y2);
@@ -99,15 +107,15 @@ void Engine::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vect
 			temp.x = x2;
 			temp.y = y2;
 			temp.type = BEAT;
-			temp.vector = GetMode(x1, y1, x2, y2, vector);
-			temp.assess = mmAB(temp.field, x2, y2, temp.vector, depth, -100, 100, turn);
+			temp.direction = GetMode(x1, y1, x2, y2, direction);
+			temp.assess = mmAB(temp.field, x2, y2, temp.direction, depth, -100, 100, turn);
 		}
 		else {
 			Move(temp.field, x1, y1, x2, y2);
 			temp.x = 0;
 			temp.y = 0;
 			temp.type = MOVE;
-			temp.vector = 0;
+			temp.direction = 0;
 			temp.assess = mmAB(temp.field, depth - 1, -100, 100, !turn);
 		}
 		moves.push_back(temp);
@@ -123,214 +131,119 @@ void Engine::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vect
 
 #endif
 
-mytype Engine::find(mytype x1, mytype y1, mytype x2, mytype y2) {
-	mytype toFind[4] = {x1, y1, x2, y2};
-	auto it = std::find_if(moves.begin(), moves.end(), [&](auto& move) -> bool {
-		return memcpy(move.coord, toFind, 4) == 0;
+uint8_t Engine::find(Coord coordinates) {
+	auto& moves = bestMoves;
+	auto it = std::find_if(moves.begin(), moves.end(), [&](const auto& move) -> bool {
+		return move.coord == coordinates;
 		});
 
-	return it == moves.end() ? -1 : std::distance(it, moves.begin());
+	int index = it == moves.end() 
+		? -1 : 
+		static_cast<int>(std::distance(it, moves.begin()));
+
+	return index;
 }
 
-float Engine::mmAB(TField& field, int depth, float alpha, float beta, bool turn) {
+int16_t Engine::mmAB(AssessMoveData& moveData, int16_t alpha, int16_t beta, uint8_t depth) {
 
 	TAM AllMoves;
-	mytype len = 0;
-	bool ntb = PMFill(field, MOVE, AllMoves, &len, turn, 0, 0, 0);
+	uint8_t len = 0;
+
+	auto& [field, type, coord, x, y, direction, turn, assess] = moveData;
+
+	bool ntb = PMFill(field, type, AllMoves, &len, turn, x, y, direction);
 
 	if (len == 0) {
-		return turn ? -100 : 100;
+		if (type == BEAT) {
+			AssessMoveData nextTurn(field);
+			nextTurn.turn = !turn;
+			return mmAB(nextTurn, alpha, beta, depth - 1);
+		}
+		return turn ? BLACK_WIN_ASSESS : WHITE_WIN_ASSESS;
 	}
 
-	if ((depth <= 0) && (!ntb)) {
-		return getAssess(field) / 10.f;
+	if (depth <= 0 && !ntb) {
+		return getAssess(field);
 	}
-	if (turn) {
-		float maxEval = -100.f;
-		float eval{};
-		for (int i = 0; i < len; i++) {
-			mytype tempVector = 0;
-			TField TempBoard;
-			memcpy(TempBoard, field, 64);
 
-			mytype x1, y1, x2, y2;
-			mytype* temp = AllMoves[i];
-			x1 = temp[0];
-			y1 = temp[1];
-			x2 = temp[2];
-			y2 = temp[3];
-			if (ntb) {
-				if (TempBoard[x1][y1] >= 3) {
-					DamkaBeat(TempBoard, x1, y1, x2, y2, tempVector);
-				}
-				else {
-					Beat(TempBoard, x1, y1, x2, y2);
-				}
-				tempVector = GetMode(x1, y1, x2, y2, tempVector);
-				eval = mmAB(TempBoard, x2, y2, tempVector, depth, alpha, beta, turn);
+	int16_t minmaxEval = turn ? BLACK_WIN_ASSESS : WHITE_WIN_ASSESS;
+	int16_t eval = 0;
+
+	for (int i = 0; i < len; i++) {
+		MOVE_DIRECTION tempDirection{NONE};
+		TField tempBoard;
+		memcpy(tempBoard, field, 64);
+
+		uint8_t x1, y1, x2, y2;
+		auto& coord = AllMoves[i];
+		x1 = coord[0];
+		y1 = coord[1];
+		x2 = coord[2];
+		y2 = coord[3];
+
+		AssessMoveData newMoveData(tempBoard);
+		newMoveData.x = x2;
+		newMoveData.y = y2;
+
+		if (ntb) {
+			if (tempBoard[x1][y1] >= 3) {
+				DamkaBeat(tempBoard, x1, y1, x2, y2, tempDirection);
 			}
 			else {
-				Move(TempBoard, x1, y1, x2, y2);
-				eval = mmAB(TempBoard, depth - 1, alpha, beta, !turn);
+				Beat(tempBoard, x1, y1, x2, y2);
 			}
-			maxEval = max(maxEval, eval);
+			newMoveData.direction = GetMode(x1, y1, x2, y2, tempDirection);
+			eval = mmAB(newMoveData, alpha, beta, depth);
+		}
+		else {
+			Move(tempBoard, x1, y1, x2, y2);
+			newMoveData.turn = !newMoveData.turn;
+			eval = mmAB(newMoveData, alpha, beta, depth - 1);
+		}
+
+		if (turn) {
+			minmaxEval = max(minmaxEval, eval);
 			alpha = max(alpha, eval);
-			if (beta <= alpha) {
-				break;
-			}
 		}
-		return maxEval;
-	}
-	else {
-		float minEval = 100.f;
-		float eval{};
-		for (int i = 0; i < len; i++) {
-			mytype tempVector = 0;
-			TField TempBoard;
-			memcpy(TempBoard, field, 64);
-
-			mytype x1, y1, x2, y2;
-			mytype* temp = AllMoves[i];
-			x1 = temp[0];
-			y1 = temp[1];
-			x2 = temp[2];
-			y2 = temp[3];
-			if (ntb) {
-				if (TempBoard[x1][y1] >= 3) {
-					DamkaBeat(TempBoard, x1, y1, x2, y2, tempVector);
-				}
-				else {
-					Beat(TempBoard, x1, y1, x2, y2);
-				}
-				tempVector = GetMode(x1, y1, x2, y2, tempVector);
-				eval = mmAB(TempBoard, x2, y2, tempVector, depth, alpha, beta, turn);
-			}
-			else {
-				Move(TempBoard, x1, y1, x2, y2);
-				eval = mmAB(TempBoard, depth - 1, alpha, beta, !turn);
-			}
-
-			minEval = min(minEval, eval);
+		else {
+			minmaxEval = min(minmaxEval, eval);
 			beta = min(beta, eval);
-			if (beta <= alpha) {
-				break;
-			}
 		}
-		return minEval;
+
+		if (beta <= alpha) {
+			break;
+		}
 	}
+	return minmaxEval;
 }
 
-float Engine::mmAB(TField& field, mytype x, mytype y, mytype vec, int depth, float alpha, float beta, bool turn) {
-
+void Engine::fill(AssessMoveData& moveData) {
 	TAM AllMoves;
-	mytype len = 0;
-	bool ntb = PMFill(field, BEAT, AllMoves, &len, turn, x, y, vec);
+	uint8_t len = 0;
 
-	if (len == 0) {
-		return mmAB(field, depth - 1, alpha, beta, !turn);
-	}
+	auto& [field, type, coord, x, y, direction, turn, assess] = moveData;
 
-	if ((depth <= 0) && (!ntb)) {
-		return (float)getAssess(field) / 10;
-	}
-	if (turn) {
-		float maxEval = -100;
-		float eval;
-		for (int i = 0; i < len; i++) {
-			mytype tempVector = vec;
-			TField TempBoard;
-			memcpy(TempBoard, field, 64);
+	bool ntb = PMFill(field, type, AllMoves, &len, turn, x, y, direction);
+	bestMoves.clear();
+	bestMoves.reserve(len);
 
-			mytype x1, y1, x2, y2;
-			mytype* temp = AllMoves[i];
-			x1 = temp[0];
-			y1 = temp[1];
-			x2 = temp[2];
-			y2 = temp[3];
-			if (ntb) {
-				if (TempBoard[x1][y1] >= 3) {
-					DamkaBeat(TempBoard, x1, y1, x2, y2, tempVector);
-				}
-				else {
-					Beat(TempBoard, x1, y1, x2, y2);
-				}
-				tempVector = GetMode(x1, y1, x2, y2, tempVector);
-				eval = mmAB(TempBoard, x2, y2, tempVector, depth, alpha, beta, turn);
-			}
-			else {
-				Move(TempBoard, x1, y1, x2, y2);
-				eval = mmAB(TempBoard, depth - 1, alpha, beta, !turn);
-			}
-			maxEval = std::max(maxEval, eval);
-			alpha = std::max(alpha, eval);
-			if (beta <= alpha) {
-				break;
-			}
-		}
-		return maxEval;
-	}
-	else {
-		float minEval = 100;
-		float eval;
-		for (int i = 0; i < len; i++) {
-			mytype tempVector = vec;
-			TField TempBoard;
-			memcpy(TempBoard, field, 64);
+	AssessMoveData temp(field);
 
-			mytype x1, y1, x2, y2;
-			mytype* temp = AllMoves[i];
-			x1 = temp[0];
-			y1 = temp[1];
-			x2 = temp[2];
-			y2 = temp[3];
-			if (ntb) {
-				if (TempBoard[x1][y1] >= 3) {
-					DamkaBeat(TempBoard, x1, y1, x2, y2, tempVector);
-				}
-				else {
-					Beat(TempBoard, x1, y1, x2, y2);
-				}
-				tempVector = GetMode(x1, y1, x2, y2, tempVector);
-				eval = mmAB(TempBoard, x2, y2, tempVector, depth, alpha, beta, turn);
-			}
-			else {
-				Move(TempBoard, x1, y1, x2, y2);
-				eval = mmAB(TempBoard, depth - 1, alpha, beta, !turn);
-			}
-
-			minEval = std::min(minEval, eval);
-			beta = std::min(beta, eval);
-			if (beta <= alpha) {
-				break;
-			}
-		}
-		return minEval;
-	}
-}
-
-void Engine::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vec, bool turn) {
-	TAM AllMoves;
-	mytype len = 0;
-	bool ntb = PMFill(field, type, AllMoves, &len, turn, x, y, vec);
-	moves.clear();
-
-	MoveData temp;
-
-	for (mytype i = 0; i < len; i++) {
+	for (uint8_t i = 0; i < len; i++) {
 		memcpy(temp.field, field, 64);
 
-		mytype x1, y1, x2, y2;
+		uint8_t x1, y1, x2, y2;
 		x1 = AllMoves[i][0];
 		y1 = AllMoves[i][1];
 		x2 = AllMoves[i][2];
 		y2 = AllMoves[i][3];
 
-		memcpy(temp.coord, AllMoves[i], 4);
+		temp.coord = AllMoves[i];
 		temp.type = type;
 
 		if (ntb) {
 			if (temp.field[x1][y1] >= 3) {
-				DamkaBeat(temp.field, x1, y1, x2, y2, vec);
+				DamkaBeat(temp.field, x1, y1, x2, y2, direction);
 			}
 			else {
 				Beat(temp.field, x1, y1, x2, y2);
@@ -338,81 +251,61 @@ void Engine::fill(TField& field, MOVE_TYPE type, mytype x, mytype y, mytype vec,
 			temp.x = x2;
 			temp.y = y2;
 			temp.type = BEAT;
-			temp.vec = GetMode(x1, y1, x2, y2, vec);
+			temp.direction = GetMode(x1, y1, x2, y2, direction);
 		}
 		else {
 			Move(temp.field, x1, y1, x2, y2);
 			temp.x = 0;
 			temp.y = 0;
 			temp.type = MOVE;
-			temp.vec = 0;
+			temp.direction = NONE;
 		}
 		temp.assess = 0;
-		moves.push_back(temp);
+		bestMoves.push_back(temp);
 	}
 }
 
 
-MOVE_RESULT Engine::PlayerMove(MoveData& data) {
+MOVE_RESULT Engine::PlayerMove(AssessMoveData& moveData) {
 
-	TField field;
-	memcpy(field, data.field, 64);
-	MOVE_TYPE type = data.type;
-	mytype x = data.x;
-	mytype y = data.y;
-	mytype vec = data.vec;
-	float assess = 0;
-	bool turn = data.turn;
+	auto& [field, type, coord, x, y, direction, turn, assess] = moveData;
+	fill(moveData);
 
-	fill(field, type, x, y, vec, turn);
+	auto& [x1, y1, x2, y2] = moveData.coord;
 
-	mytype x1 = data.coord[0];
-	mytype y1 = data.coord[1];
-	mytype x2 = data.coord[2];
-	mytype y2 = data.coord[3];
-
-	mytype index = find(x1, y1, x2, y2);
+	uint8_t index = find(moveData.coord);
 	if (index != -1) {
-		MoveData move = moves[index];
+		AssessMoveData move = bestMoves[index];
 		type = move.type;
-		vec = move.vec;
+		direction = move.direction;
 		memcpy(field, move.field, 64);
 
 		if (type == BEAT) {
 
-			vec = GetMode(x1, y1, x2, y2, vec);
+			direction = GetMode(x1, y1, x2, y2, direction);
 			x = x2;
 			y = y2;
 
-			data.type = BEAT;
-			data.vec = vec;
-			data.x = x;
-			data.y = y;
-			memcpy(data.field, field, 64);
+			fill(moveData);
 
-			fill(field, type, x, y, vec, turn);
-
-			if (moves.size() > 0) {
-
+			if (bestMoves.size() > 0) {
 				return ONE_MORE;
 			}
 			else {
-				data.x = 0;
-				data.y = 0;
-				data.type = MOVE;
-				data.vec = 0;
+				x = 0;
+				y = 0;
+				type = MOVE;
+				direction = NONE;
 			}
 		}
 		else {
-			data.type = MOVE;
-			data.vec = 0;
-			data.x = 0;
-			data.y = 0;
-			memcpy(data.field, field, 64);
+			direction = NONE;
+			x = 0;
+			y = 0;
 		}
-
-		fill(field, MOVE, 0, 0, 0, !turn);
-		if (moves.size() == 0) {
+		turn = !turn;
+		fill(moveData);
+		if (bestMoves.size() == 0) {
 			return WIN;
 		}
 
@@ -421,72 +314,51 @@ MOVE_RESULT Engine::PlayerMove(MoveData& data) {
 	return INVALID_COORD;
 }
 
-MOVE_RESULT Engine::EngineMove(MoveData& data, mytype depth) {
+MOVE_RESULT Engine::EngineMove(AssessMoveData& moveData, uint8_t depth) {
 
-	TField field;
-	memcpy(field, data.field, 64);
-	MOVE_TYPE type = data.type;
-	mytype x = data.x;
-	mytype y = data.y;
-	mytype vector = data.vec;
-	float assess = 0;
-	bool turn = data.turn;
+	auto& [field, type, coord, x, y, direction, turn, assess] = moveData;
+	fill(moveData);
 
-	fill(field, type, x, y, vector, turn);
-
-	if (moves.size() > 1) {
-		fill(field, type, x, y, vector, turn, depth);
+	if (bestMoves.size() > 1) {
+		fill(moveData, depth);
 	}
-	if (moves.size() > 0) {
-		MoveData move = moves[0];
+	if (bestMoves.size() > 0) {
+		AssessMoveData move = bestMoves[0];
 
-		memcpy(data.coord, move.coord, 4);
-		
-		mytype x1 = data.coord[0];
-		mytype y1 = data.coord[1];
-		mytype x2 = data.coord[2];
-		mytype y2 = data.coord[3];
-
+		moveData.coord = move.coord;
+		auto& [x1, y1, x2, y2] = moveData.coord;
 
 		type = move.type;
-		vector = move.vec;
+		direction = move.direction;
 		memcpy(field, move.field, 64);
 
 		if (type == BEAT) {
 
-			vector = GetMode(x1, y1, x2, y2, vector);
+			direction = GetMode(x1, y1, x2, y2, direction);
 			x = x2;
 			y = y2;
 
-			data.type = BEAT;
-			data.vec = vector;
-			data.x = x;
-			data.y = y;
-			memcpy(data.field, field, 64);
+			fill(moveData);
 
-			fill(field, type, x, y, vector, turn);
-
-			if (moves.size() > 0) {
+			if (bestMoves.size() > 0) {
 
 				return ONE_MORE;
 			}
 			else {
-				data.x = 0;
-				data.y = 0;
-				data.type = MOVE;
-				data.vec = 0;
+				x = 0;
+				y = 0;
+				type = MOVE;
+				direction = NONE;
 			}
 		}
 		else {
-			data.type = MOVE;
-			data.vec = 0;
-			data.x = 0;
-			data.y = 0;
-			memcpy(data.field, field, 64);
+			direction = NONE;
+			x = 0;
+			y = 0;
 		}
-
-		fill(field, MOVE, 0, 0, 0, !turn);
-		if (moves.size() == 0) {
+		turn = !turn;
+		fill(moveData);
+		if (bestMoves.size() == 0) {
 			return WIN;
 		}
 
@@ -495,32 +367,32 @@ MOVE_RESULT Engine::EngineMove(MoveData& data, mytype depth) {
 	return INVALID_COORD;
 }
 
-void Engine::evaluate(MoveData& data, mytype depth) {
-
-	float assess = 0;
-	int index = -1;
-	bool turn = data.turn;
-
-	fill(data.oldfield, data.type, data.x, data.y, data.vec, turn, depth);
-	index = find(data.coord[0], data.coord[1], data.coord[2], data.coord[3]);
-	assess = moves[index].assess;
-	float temp_assess = moves[0].assess;
-
-	if (moves.size() == 1) {
-		data.comment = FORCED;
-	}
-	else if (index == 0) {
-		data.comment = BEST;
-	}
-	else if ((temp_assess < assess + 0.3 || (temp_assess < assess + 1.0 && assess > 5)) && turn || (temp_assess > assess - 0.3 || (temp_assess > assess - 1.0 && assess > 5)) && !turn) {
-		data.comment = GOOD;
-	}
-	else if ((temp_assess < assess + 0.9 || (temp_assess < assess + 3.0 && assess > 5)) && turn || (temp_assess > assess - 0.9 || (temp_assess > assess - 3.0 && assess > 5)) && !turn) {
-		data.comment = INACCURACY;
-	}
-	else {
-		data.comment = BLUNDER;
-	}
-	data.assess = assess;
-}
+//void Engine::evaluate(AssessMoveData& data, uint8_t depth) {
+//
+//	float assess = 0;
+//	int index = -1;
+//	bool turn = data.turn;
+//
+//	fill(data.oldfield, data.type, data.x, data.y, data.direction, turn, depth);
+//	index = find(data.coord);
+//	assess = bestMoves[index].assess;
+//	float temp_assess = bestMoves[0].assess;
+//
+//	if (bestMoves.size() == 1) {
+//		data.comment = FORCED;
+//	}
+//	else if (index == 0) {
+//		data.comment = BEST;
+//	}
+//	else if ((temp_assess < assess + 0.3 || (temp_assess < assess + 1.0 && assess > 5)) && turn || (temp_assess > assess - 0.3 || (temp_assess > assess - 1.0 && assess > 5)) && !turn) {
+//		data.comment = GOOD;
+//	}
+//	else if ((temp_assess < assess + 0.9 || (temp_assess < assess + 3.0 && assess > 5)) && turn || (temp_assess > assess - 0.9 || (temp_assess > assess - 3.0 && assess > 5)) && !turn) {
+//		data.comment = INACCURACY;
+//	}
+//	else {
+//		data.comment = BLUNDER;
+//	}
+//	data.assess = assess;
+//}
 

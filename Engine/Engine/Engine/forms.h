@@ -51,7 +51,7 @@ protected:
 
 class TAnalysicsForm final : public TForm {
 public:
-    TAnalysicsForm(vector<MoveData>& data);
+    TAnalysicsForm(vector<AssessMoveData>& data);
 
 protected:
     void onDraw() const override;
@@ -59,13 +59,13 @@ protected:
     //void onLeftButtonPress(Vector2i mousePosition) override;
 
 private:
-    TButton exitB;
-    TBoard board;
-    TAssessBar bar;
-    TButton flipB;
-    TProgressBar pbar;
+    Button exitB;
+    Board board;
+    AssessBar bar;
+    Button flipB;
+    ProgressBar pbar;
     AnalysicsController control;
-    TCommentSection section;
+    CommentSection section;
 };
 
 class TEngineForm final: public TForm {
@@ -76,17 +76,24 @@ public:
 protected:
     void onDraw() const override;
 
-private:
-    bool LeftPressed{ false };
-    bool LeftReleased{ false };
+    void onClose() override;
 
-    TButton exitB, flipB, analysicsB;
-    TLabel resultLabel, timeLabel;
-    TBoard board;
+    void onLeftButtonPress(Vector2i position) override;
+
+    void onLeftButtonRelease(Vector2i position) override;
+
+private:
+
+    Button exitButton, flipButton, analysicsButton;
+    Label resultLabel, timeLabel;
+    Board board;
     GameController control;
     unique_ptr<thread> engineThread;
     mutex labelMutex;
 
+    bool LeftPressed{ false };
+    Vector2i LeftPressedPosition{};
+    
     void engineMove();
 };
 
@@ -106,12 +113,12 @@ private:
 
     vector<int> vMoves;
 
-    TClock clock1, clock2;
-    TButton exitB, flipB, analysicsB, drawB, resignB;
-    TBoard board;
+    CheckersClock clock1, clock2;
+    Button exitB, flipB, analysicsB, drawB, resignB;
+    Board board;
     TWait wait;
     GameController control;
-    TLabel lDraw, lLose, lWin;
+    Label lDraw, lLose, lWin;
 
     enum Type {
         INIT,
@@ -122,7 +129,7 @@ private:
 
     void resign();
     void offerdraw();
-    void sendMove(mytype x1, mytype y1, mytype x2, mytype y2);
+    void sendMove(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2);
     void receive();
     void loading();
 };
@@ -140,10 +147,10 @@ protected:
     void onChar(char symbol) override;
 
 private:
-    vector<TLabel> vLabel;
-    vector<TChoice> vChoice;
-    vector<TInput> vInput;
-    TButton startB, exitB;
+    vector<Label> vLabel;
+    vector<Choice> vChoice;
+    vector<Input> vInput;
+    Button startB, exitB;
 
     unique_ptr<TEngineForm> engineForm;
     unique_ptr<TPvpForm> pvpForm;

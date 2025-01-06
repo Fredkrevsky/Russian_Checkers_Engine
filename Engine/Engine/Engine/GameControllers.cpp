@@ -1,56 +1,49 @@
 #include "GameControllers.h"
 
 
-void GameController::getData(MoveData& source) {
-    assess = source.assess;
+void GameController::getData(AssessMoveData& source) {
     memcpy(field, source.field, 64);
     type = source.type;
-    vec = source.vec;
+    direction = source.direction;
     x = source.x;
     y = source.y;
 }
 
-void GameController::setData(MoveData& dest) {
-    dest.assess = assess;
-    dest.x = x;
-    dest.y = y;
+void GameController::setData(AssessMoveData& dest) {
+    MoveData data(field);
+    data.x = x;
+    data.y = y;
     memcpy(dest.field, field, 64);
-    memcpy(dest.oldfield, field, 64);
     dest.turn = turn;
     dest.type = type;
-    dest.vec = vec;
+    dest.direction = direction;
 }
 
 GameController::GameController() {
-    type = MOVE;
-    x = y = vec = 0;
     turn = true;
     curr = 0;
     head = 0;
     assess = 0;
     BInit(field);
 
-    MoveData temp;
-    setData(temp);
-    temp.coord[0] = 0;
-    temp.coord[1] = 0;
-    temp.coord[2] = 0;
-    temp.coord[3] = 0;
+    AssessMoveData moveData(field);
+    setData(moveData);
 
-    gameMoves.push_back(temp);
+    //gameMoves.push_back(temp);
 }
 
-MOVE_RESULT GameController::PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2) {
+MOVE_RESULT GameController::playerMove(tuple<uint8_t, uint8_t, uint8_t, uint8_t> moveCoordinates) {
     if (curr == head && !locked) {
 
-        MoveData data;
+        AssessMoveData data(field);
         setData(data);
-        data.coord[0] = x1;
-        data.coord[1] = y1;
-        data.coord[2] = x2;
-        data.coord[3] = y2;
+        auto [x1, y1, x2, y2] = moveCoordinates;
+        data.coord.x1 = x1;
+        data.coord.y1 = y1;
+        data.coord.x2 = x2;
+        data.coord.y2 = y2;
 
-        MoveData temp = data;
+        AssessMoveData temp = data;
         MOVE_RESULT result = engine.PlayerMove(data);
         if (result != INVALID_COORD) {
             memcpy(temp.field, data.field, 64);
@@ -70,18 +63,18 @@ MOVE_RESULT GameController::PlayerMove(mytype x1, mytype y1, mytype x2, mytype y
     return MOVE_RESULT::INVALID_COORD;
 }
 
-MOVE_RESULT GameController::EngineMove(mytype depth) {
+MOVE_RESULT GameController::engineMove(uint8_t depth) {
     if (!locked) {
         getCurr();
 
-        MoveData data;
+        AssessMoveData data(field);
         setData(data);
 
-        MoveData temp = data;
+        AssessMoveData temp = data;
         MOVE_RESULT result = engine.EngineMove(data, depth);
         if (result == ONE_MORE || result == SUCCESS || result == WIN) {
             memcpy(temp.field, data.field, 64);
-            memcpy(temp.coord, data.coord, 4);
+            temp.coord = data.coord;
             gameMoves.push_back(temp);
             getData(data);
             if (result == SUCCESS) {
@@ -101,7 +94,7 @@ MOVE_RESULT GameController::EngineMove(mytype depth) {
 void GameController::getPrev() {
     if (curr > 0) {
         curr--;
-        MoveData temp = gameMoves[curr];
+        AssessMoveData temp = gameMoves[curr];
         memcpy(field, temp.field, 64);
         assess = temp.assess;
     }
@@ -110,7 +103,7 @@ void GameController::getPrev() {
 void GameController::getNext() {
     if (curr < head) {
         curr++;
-        MoveData temp = gameMoves[curr];
+        AssessMoveData temp = gameMoves[curr];
         memcpy(field, temp.field, 64);
         assess = temp.assess;
     }
@@ -119,25 +112,25 @@ void GameController::getNext() {
 void GameController::getCurr() {
     if (curr != head) {
         curr = head;
-        MoveData temp = gameMoves[curr];
+        AssessMoveData temp = gameMoves[curr];
         memcpy(field, temp.field, 64);
         assess = temp.assess;
     }
 }
 
 
-void AnalysicsController::getData(MoveData& source) {
+void AnalysicsController::getData(AssessMoveData& source) {
     assess = source.assess;
     memcpy(field, source.field, 64);
     type = source.type;
-    vec = source.vec;
+    direction = source.direction;
     x = source.x;
     y = source.y;
-    x1 = source.coord[0];
-    y1 = source.coord[1];
-    x2 = source.coord[2];
-    y2 = source.coord[3];
-    comment = source.comment;
+    x1 = source.coord.x1;
+    y1 = source.coord.y1;
+    x2 = source.coord.x2;
+    y2 = source.coord.y2;
+    //comment = source.comment;
 }
 
 AnalysicsController::AnalysicsController() {
@@ -145,7 +138,8 @@ AnalysicsController::AnalysicsController() {
     x1 = x2 = y1 = y2 = 0;
     comment = FORCED;
     type = MOVE;
-    x = y = vec = 0;
+    x = y = 0;
+    direction = NONE;
     turn = true;
     curr = 0;
     head = 0;
@@ -155,11 +149,11 @@ AnalysicsController::AnalysicsController() {
 }
 
 void AnalysicsController::evaluate(int index, int depth) {
-    engine.evaluate(gameMoves[index], depth);
+    //engine.evaluate(gameMoves[index], depth);
 }
 
-void AnalysicsController::setMoves(vector<MoveData>& tgameMoves) {
-    gameMoves = tgameMoves;
+void AnalysicsController::setMoves(vector<AssessMoveData>& _gameMoves) {
+    gameMoves = _gameMoves;
 }
 
 void AnalysicsController::getPrev() {

@@ -2,45 +2,46 @@
 #include "Engine.h"
 #include <vector>
 
-using std::vector;
+using std::vector, std::tuple;
 
 class GameController final {
 public:
     TField field;
-    float assess;
-    int curr, head;
-    bool turn;
+    float assess{0.f};
+    int curr{ 0 }, head{ 0 };
+    bool turn{true};
 
-    vector<MoveData> gameMoves;
+    vector<AssessMoveData> gameMoves;
     GameController();
-    MOVE_RESULT PlayerMove(mytype x1, mytype y1, mytype x2, mytype y2);
-    MOVE_RESULT EngineMove(mytype depth);
+    [[nodiscard]] MOVE_RESULT playerMove(tuple<uint8_t, uint8_t, uint8_t, uint8_t>);
+    [[nodiscard]] MOVE_RESULT engineMove(uint8_t depth);
     void getPrev();
     void getNext();
     void getCurr();
 
-protected:
+private:
     Engine engine;
-    MOVE_TYPE type;
-    mytype x, y, vec;
-    bool locked = false;
+    MOVE_TYPE type{MOVE};
+    uint8_t x{0}, y{0};
+    MOVE_DIRECTION direction{NONE};
+    bool locked{ false };
 
-    void getData(MoveData& source);
-    void setData(MoveData& dest);
+    void getData(AssessMoveData& source);
+    void setData(AssessMoveData& dest);
 
 };
 
 class AnalysicsController final {
 public:
-    TField field;
-    float assess;
-    MOVE_STATUS comment;
-    mytype x1, y1, x2, y2;
+    TField field{};
+    float assess{0.f};
+    MOVE_STATUS comment{FORCED};
+    uint8_t x1{0}, y1{0}, x2{0}, y2{0};
 
-    vector<MoveData> gameMoves;
+    vector<AssessMoveData> gameMoves;
     AnalysicsController();
     void evaluate(int index, int depth);
-    void setMoves(vector<MoveData>& tgameMoves);
+    void setMoves(vector<AssessMoveData>& tgameMoves);
     void getPrev();
     void getNext();
     void getCurr();
@@ -49,9 +50,10 @@ private:
     bool turn;
 
     Engine engine;
-    MOVE_TYPE type;
-    mytype x, y, vec;
-    int curr, head;
+    MOVE_TYPE type{MOVE};
+    uint8_t x{ 0 }, y{0};
+    MOVE_DIRECTION direction{ NONE };
+    int curr{ 0 }, head{0};
 
-    void getData(MoveData& source);
+    void getData(AssessMoveData& source);
 };

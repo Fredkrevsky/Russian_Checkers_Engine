@@ -13,9 +13,9 @@ static constexpr int fontSize = 24;
 static constexpr int tileSize = 100;
 
 using std::vector, std::string, std::thread, std::unique_ptr, std::array,
-std::function;
+std::function, std::tuple, std::optional;
 
-class TObject {
+class Object {
 public:
     void setVisible(bool _visible);
     virtual void setPosition(Vector2f position);
@@ -25,18 +25,18 @@ public:
     virtual void draw(RenderWindow& win) const;
 
 protected:
-    TObject();
-    virtual ~TObject() {};
+    Object();
+    virtual ~Object() {};
 
     RectangleShape background;
     Vector2f position{}, size{};
     bool visible{ true };
 };
 
-class TLabel final : public TObject {
+class Label final : public Object {
 public: 
-    TLabel();
-    TLabel(const string& _caption, const Vector2f _pos, bool _visible = true);
+    Label();
+    Label(const string& _caption, const Vector2f _pos, bool _visible = true);
 
     void setText(const string& _text);
     void setPosition(Vector2f position) override;
@@ -50,9 +50,9 @@ private:
     Text text;
 };
 
-class TClickable : public TObject {
+class Clickable : public Object {
 public:
-    TClickable();
+    Clickable();
     bool isPressed(Vector2i pos) const;
     void setOnPress(const function<void()>& callback);
     virtual void onPress();
@@ -61,10 +61,11 @@ protected:
     function<void()> onPressFunction;
 };
 
-class TButton final : public TClickable {
+class Button final : public Clickable {
 public:
-    TButton();
-    TButton(const string& _caption, Vector2f _pos);
+    Button();
+    Button(const string& _caption, Vector2f _pos);
+    Button(const string& _caption, Vector2f _position, Vector2f _size);
 
     void setCaption(const string& _caption);
     void setPosition(Vector2f position) override;
@@ -78,10 +79,10 @@ private:
     void normCaption();
 };
 
-class TChoice final : public TClickable {
+class Choice final : public Clickable {
 public:
-    TChoice();
-    TChoice(Vector2f _position, const function<void()>& callback, bool _status, bool _visible = true);
+    Choice();
+    Choice(Vector2f _position, const function<void()>& callback, bool _status, bool _visible = true);
 
     void setPosition(Vector2f position) override;
     void setSize(Vector2f position) override;
@@ -95,9 +96,9 @@ private:
     RectangleShape in;
 };
 
-class TBar : public TObject {
+class Bar : public Object {
 public:
-    TBar();
+    Bar();
     virtual void setValue(float toSet) = 0;
     void setFirstColor(Color color);
     void setSecondColor(Color color);
@@ -110,9 +111,9 @@ protected:
     float posX;
 };
 
-class TProgressBar final : public TBar {
+class ProgressBar final : public Bar {
 public:
-    TProgressBar();
+    ProgressBar();
     void setPosition(Vector2f position) override;
     void setSize(Vector2f size) override;
     void setValue(float toSet);
@@ -123,9 +124,9 @@ private:
     inline void setString();
 };
 
-class TAssessBar final : public TBar {
+class AssessBar final : public Bar {
 public:
-    TAssessBar();
+    AssessBar();
     void setPosition(Vector2f position) override;
     void setSize(Vector2f size) override;
     void setValue(float toSet);
@@ -136,14 +137,14 @@ private:
     inline void setTextColor();
     inline void setTextPosition();
     inline void setString();
-    bool isFlip;
+    bool isFlipped;
 };
 
-class TCommentSection final : TObject{
+class CommentSection final : public Object{
 public:
-    TCommentSection();
+    CommentSection();
     void setPosition(Vector2f position) override;
-    void setValues(vector<MoveData>& vdata);
+    void setValues(vector<AssessMoveData>& vdata);
     void draw(RenderWindow& win) const override;
 
 private:
@@ -151,9 +152,9 @@ private:
     vector<char> values;
 };
 
-class TClock final : public TObject {
+class CheckersClock final : public Object {
 public:
-    TClock();
+    CheckersClock();
     void update(int seconds);
     void start();
     void pause();
@@ -172,37 +173,40 @@ private:
     void tictac();
 };
 
-class TBoard final : TObject {
+class Board final : public Clickable {
 public:
-    void capture(int posx, int posy);
-    void uncatch();
-    TBoard();
-    void setPosition(Vector2f position) override;
-    void setField(TField& toSet);
-    void getCoord(Vector2f start, Vector2f end, mytype coord[]);
+    Board();
+    void catchPiece(Vector2i mousePosition);
+    void releasePiece(Vector2i mousePosition);
+    void setPosition(Vector2f _position) override;
+    void setField(TField& _field);
+    tuple<uint8_t, uint8_t, uint8_t, uint8_t> getMoveCoordinates();
     void flip();
     void draw(RenderWindow& win) const override;
-    void setComment(MOVE_STATUS comment, mytype x1, mytype y1, mytype x2, mytype y2);
+    void setComment(MOVE_STATUS comment, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2);
 
 private:
+    inline Vector2i getPieceCoordinates(Vector2i mousePosition);
+
     TField field{};
     MOVE_STATUS comment{};
     array<Texture, 5> moveStatusTextures;
+    Vector2i moveStart{}, moveEnd{};
     bool isCaptured{false};
     bool flipped {false};
-    mytype x1{}, y1{}, x2{}, y2{};
-    mytype cx{ -1 }, cy{ -1 };
+    uint8_t x1{}, y1{}, x2{}, y2{};
+    uint8_t cx{ 0 }, cy{ 0 };
 };
 
-class TInput final : public TClickable {
+class Input final : public Clickable {
 public:
     enum MODE {
         IP,
         PORT,
     };
     
-    TInput();
-    TInput(Vector2f _position, MODE mode, int limit);
+    Input();
+    Input(Vector2f _position, MODE mode, int limit);
 
     void onPress() override;
     void onKeyPress(char pressed);
@@ -222,19 +226,18 @@ private:
     int maxTextLength{ 10 };
 };
 
-class TWait final : TObject {
+class TWait final : public Object {
 public:
     TWait();
     void setNext();
     void setPosition(Vector2f _position) override;
     void setRadius(int tradius);
-    void setVisible(bool toSet);
     void draw(RenderWindow& win) const override;
 
 private:
     array<CircleShape, 6> circlesArray;
-    int current{ 0 };
+    int currentState{ 0 };
     int radius{ 100 };
 
-    void setPos();
+    void normalizePosition();
 };

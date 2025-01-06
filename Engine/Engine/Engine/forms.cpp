@@ -5,14 +5,14 @@
 #define PVP_FORM_SIZE Vector2u{1200, 900}
 #define START_FORM_SIZE Vector2u{760, 850}
 #define ENGINE_FORM_SIZE Vector2u{1200, 900}
-#define ANALYSICS_FORM_SIZE Vector2u{1200, 900}
+#define ANALYSICS_FORM_SIZE Vector2u{1300, 900}
 
 #define EASY_DEPTH 4
 #define MEDIUM_DEPTH 8
 #define HARD_DEPTH 10
 #define IMPOSSIBLE_DEPTH 12
 
-using std::pair;
+using std::pair, std::lock_guard, std::mutex;
 
 TForm::TForm(Vector2u windowSize, const string& title)
     : window(VideoMode(windowSize), title, Style::Close) {
@@ -93,7 +93,7 @@ void TAnalysicsForm::onDraw() const {
     section.draw(window);
 }
 
-TAnalysicsForm::TAnalysicsForm(std::vector<MoveData>& data) :
+TAnalysicsForm::TAnalysicsForm(std::vector<AssessMoveData>& data) :
     TForm(ANALYSICS_FORM_SIZE, "Analysics form") {
 
     control.setMoves(data);
@@ -208,26 +208,26 @@ TStartForm::TStartForm() : TForm(START_FORM_SIZE, "Start form") {
 
     vLabel.reserve(13);
 
-    vLabel.push_back(TLabel("Choose mode:", Vector2f(320, 30)));
-    vLabel.push_back(TLabel("vs Player", Vector2f(245, 90)));
-    vLabel.push_back(TLabel("vs Engine", Vector2f(245, 140)));
+    vLabel.push_back(Label("Choose mode:", Vector2f(320, 30)));
+    vLabel.push_back(Label("vs Player", Vector2f(245, 90)));
+    vLabel.push_back(Label("vs Engine", Vector2f(245, 140)));
 
-    vLabel.push_back(TLabel("Choose your color:", Vector2f(300, 220), false));
-    vLabel.push_back(TLabel("White", Vector2f(245, 280), false));
-    vLabel.push_back(TLabel("Black", Vector2f(245, 330), false));
-    vLabel.push_back(TLabel("Choose the difficulty:", Vector2f(289, 410), false));
-    vLabel.push_back(TLabel("Easy", Vector2f(245, 470), false));
-    vLabel.push_back(TLabel("Medium", Vector2f(245, 520), false));
-    vLabel.push_back(TLabel("Hard", Vector2f(245, 570), false));
-    vLabel.push_back(TLabel("Impossible", Vector2f(245, 620), false));
+    vLabel.push_back(Label("Choose your color:", Vector2f(300, 220), false));
+    vLabel.push_back(Label("White", Vector2f(245, 280), false));
+    vLabel.push_back(Label("Black", Vector2f(245, 330), false));
+    vLabel.push_back(Label("Choose the difficulty:", Vector2f(289, 410), false));
+    vLabel.push_back(Label("Easy", Vector2f(245, 470), false));
+    vLabel.push_back(Label("Medium", Vector2f(245, 520), false));
+    vLabel.push_back(Label("Hard", Vector2f(245, 570), false));
+    vLabel.push_back(Label("Impossible", Vector2f(245, 620), false));
 
-    vLabel.push_back(TLabel("Enter server IP", Vector2f(300, 425)));
-    vLabel.push_back(TLabel("Enter server port", Vector2f(300, 525)));
+    vLabel.push_back(Label("Enter server IP", Vector2f(300, 425)));
+    vLabel.push_back(Label("Enter server port", Vector2f(300, 525)));
 
     turn = true;
     depth = IMPOSSIBLE_DEPTH;
 
-    TInput tempI;
+    Input tempI;
     tempI.setThickness(2);
     tempI.setVisible(true);
     tempI.setSize({ 300, 35 });
@@ -242,7 +242,7 @@ TStartForm::TStartForm() : TForm(START_FORM_SIZE, "Start form") {
 
     vChoice.reserve(8);
 
-    vChoice.push_back(TChoice({ 445, 97 }, [&]() {
+    vChoice.push_back(Choice({ 445, 97 }, [&]() {
         vChoice[0].setStatus(true);
         vChoice[1].setStatus(false);
         for (int i = 2; i < 8; ++i) {
@@ -258,7 +258,7 @@ TStartForm::TStartForm() : TForm(START_FORM_SIZE, "Start form") {
         pvp = true;
         }, true));
 
-    vChoice.push_back(TChoice({ 445, 147 }, [&]() {
+    vChoice.push_back(Choice({ 445, 147 }, [&]() {
         vChoice[1].setStatus(true);
         vChoice[0].setStatus(false);
         for (int i = 2; i < 8; ++i) {
@@ -274,13 +274,13 @@ TStartForm::TStartForm() : TForm(START_FORM_SIZE, "Start form") {
         pvp = false;
         }, false));
 
-    vChoice.push_back(TChoice({ 445, 285 }, [&]() {
+    vChoice.push_back(Choice({ 445, 285 }, [&]() {
         turn = true;
         vChoice[2].setStatus(true);
         vChoice[3].setStatus(false);
         }, true, false));
 
-    vChoice.push_back(TChoice({ 445, 335 }, [&]() {
+    vChoice.push_back(Choice({ 445, 335 }, [&]() {
         turn = false;
         vChoice[2].setStatus(false);
         vChoice[3].setStatus(true);
@@ -296,22 +296,22 @@ TStartForm::TStartForm() : TForm(START_FORM_SIZE, "Start form") {
             });
         };
 
-    vChoice.push_back(TChoice({ 445, 475 }, [=]() {
+    vChoice.push_back(Choice({ 445, 475 }, [=]() {
         setDifficultyLevel(0);
         depth = EASY_DEPTH;
         }, false, false));
 
-    vChoice.push_back(TChoice({ 445, 525 }, [=]() {
+    vChoice.push_back(Choice({ 445, 525 }, [=]() {
         setDifficultyLevel(1);
         depth = MEDIUM_DEPTH;
         }, false, false));
 
-    vChoice.push_back(TChoice({ 445, 575 }, [=]() {
+    vChoice.push_back(Choice({ 445, 575 }, [=]() {
         setDifficultyLevel(2);
         depth = HARD_DEPTH;
         }, false, false));
 
-    vChoice.push_back(TChoice({ 445, 625 }, [=]() {
+    vChoice.push_back(Choice({ 445, 625 }, [=]() {
         setDifficultyLevel(3);
         depth = IMPOSSIBLE_DEPTH;
         }, true, false));
@@ -371,35 +371,73 @@ void TStartForm::onChar(char symbol) {
 
 void TEngineForm::onDraw() const {
     board.draw(window);
-    exitB.draw(window);
-    flipB.draw(window);
-    analysicsB.draw(window);
+    exitButton.draw(window);
+    flipButton.draw(window);
+    analysicsButton.draw(window);
     resultLabel.draw(window);
     timeLabel.draw(window);
 }
 
-TEngineForm::TEngineForm() : TForm(ENGINE_FORM_SIZE, "Engine Form") {
+void TEngineForm::onClose() {
+    //engineThread->join();
+    TForm::onClose();
+}
 
-    exitB.setSize({ 100, 50 });
-    exitB.setThickness(2);
-    exitB.setColor(Color::Green);
-    exitB.setCaption("Exit");
-    exitB.setPosition({ 1050, 798 });
+void TEngineForm::onLeftButtonPress(Vector2i mousePosition) {
+    if (exitButton.isPressed(mousePosition)) {
+        onClose();
+    }
+    else if (flipButton.isPressed(mousePosition)) {
+        board.flip();
+    }
+    else if (analysicsButton.isPressed(mousePosition)) {    
+        unique_ptr<TAnalysicsForm> analysicsForm{ new TAnalysicsForm(control.gameMoves)};
+        analysicsForm->poll();
+    }
+    else if (board.isPressed(mousePosition)) {
+        LeftPressedPosition = mousePosition;
+        board.catchPiece(mousePosition);
+        LeftPressed = true;
+    }
+}
+
+void TEngineForm::onLeftButtonRelease(Vector2i mousePosition) {
+    
+    if (LeftPressed) {
+        LeftPressed = false;
+        board.releasePiece(mousePosition);
+        auto moveCoordinates = board.getMoveCoordinates();
+        auto result = control.playerMove(moveCoordinates);
+        if (result != INVALID_COORD) {
+            board.setField(control.field);
+            if (result == SUCCESS) {
+                //engineThread->launch();
+            }
+            else if (result == WIN) {
+                resultLabel.setText("You win");
+                resultLabel.setVisible(true);
+            }
+        }
+    }
+}
+
+TEngineForm::TEngineForm() : 
+    TForm(ENGINE_FORM_SIZE, "Engine Form") {
+
+    exitButton.setSize({ 100, 50 });
+    exitButton.setCaption("Exit");
+    exitButton.setPosition({ 1050, 798 });
 
     board.setField(control.field);
     board.setPosition({ 100, 50 });
 
-    flipB.setSize({ 100, 50 });
-    flipB.setColor(Color::Green);
-    flipB.setCaption("Flip");
-    flipB.setPosition({ 930, 798 });
-    flipB.setThickness(2);
+    flipButton.setSize({ 100, 50 });
+    flipButton.setCaption("Flip");
+    flipButton.setPosition({ 930, 798 });
 
-    analysicsB.setSize({ 200, 60 });
-    analysicsB.setColor(Color::Green);
-    analysicsB.setCaption("Analysics");
-    analysicsB.setPosition({ 950, 100 });
-    analysicsB.setThickness(2);
+    analysicsButton.setSize({ 200, 60 });
+    analysicsButton.setCaption("Analysics");
+    analysicsButton.setPosition({ 950, 100 });
 
     resultLabel.setPosition({ 310, 350 });
     resultLabel.setFontSize(100);
@@ -423,6 +461,24 @@ TEngineForm::TEngineForm() : TForm(ENGINE_FORM_SIZE, "Engine Form") {
 
 TEngineForm::~TEngineForm() { }
 
+void TEngineForm::engineMove() {
+    auto start = std::chrono::high_resolution_clock::now();
+
+    MOVE_RESULT result;
+    do {
+        result = control.engineMove(depth);
+        board.setField(control.field);
+    } while (result == ONE_MORE);
+    if (result == WIN) {
+        resultLabel.setText("You lose");
+        resultLabel.setVisible(true);
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    std::string s = "Time: " + std::to_string(duration) + " ms\n";
+    timeLabel.setText(s);
+}
+
 //void TEngineForm::poll() {
 //
 //    Vector2f LPPos, LRPos;
@@ -433,11 +489,6 @@ TEngineForm::~TEngineForm() { }
 //    {
 //        pos = Vector2f(Mouse::getPosition(win));
 //        while (const std::optional event = win.pollEvent()) {
-//            if (event->is<Event::Closed>()) {
-//                win.close();
-//                //engineThread->wait();
-//                open = false;
-//            }
 //            else if (event->is<Event::MouseButtonPressed>()) {
 //                board.capture(pos.x, pos.y);
 //                if (exitB.isPressed(pos)) {
@@ -485,7 +536,7 @@ TEngineForm::~TEngineForm() { }
 //                LR = false;
 //
 //                if (turn == control.turn) {
-//                    mytype coord[4];
+//                    uint8_t coord[4];
 //                    board.getCoord(LPPos, LRPos, coord);
 //                    MOVE_RESULT result = control.PlayerMove(coord[0], coord[1], coord[2], coord[3]);
 //                    if (result != INVALID_COORD) {
@@ -506,6 +557,8 @@ TEngineForm::~TEngineForm() { }
 //    }
 //    //engineThread->terminate();
 //}
+
+
 
 TPvpForm::TPvpForm() : TForm(PVP_FORM_SIZE, "PvP form") {
 
@@ -587,28 +640,7 @@ TPvpForm::~TPvpForm() {
 
 }
 
-void TEngineForm::engineMove() {
-    auto start = std::chrono::high_resolution_clock::now();
-
-    MOVE_RESULT result;
-    do {
-        result = control.EngineMove(depth);
-        board.setField(control.field);
-    } while (result == ONE_MORE);
-    if (result == WIN) {
-        resultLabel.setText("You lose");
-        resultLabel.setVisible(true);
-    }
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    std::string s = "Time: " + std::to_string(duration) + " ms\n";
-    {
-        std::lock_guard<std::mutex> lock(labelMutex);
-        timeLabel.setText(s);
-    }
-}
-
-void TPvpForm::sendMove(mytype x1, mytype y1, mytype x2, mytype y2) {
+void TPvpForm::sendMove(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2) {
     if (CheckCoord(x1, y1) && CheckCoord(x2, y2)) {
         Packet packet;
         packet << (uint8_t)MOVEREQ << x1 << y1 << x2 << y2;
@@ -654,7 +686,7 @@ void TPvpForm::receive() {
             }
             break;
         case MOVEREQ:
-            mytype x1, y1, x2, y2;
+            uint8_t x1, y1, x2, y2;
             uint8_t result;
             packet >> result >> x1 >> y1 >> x2 >> y2;
             
@@ -665,14 +697,14 @@ void TPvpForm::receive() {
                 vMoves.clear();
             }
             else if (result == LOSE) {
-                control.PlayerMove(x1, y1, x2, y2);
+                control.playerMove({ x1, y1, x2, y2 });
                 lLose.setVisible(true);
             }
             else if (result == ONE_MORE || result == SUCCESS) {
-                control.PlayerMove(x1, y1, x2, y2);
+                control.playerMove({ x1, y1, x2, y2 });
             }
             else if (result == WIN) {
-                control.PlayerMove(x1, y1, x2, y2);
+                control.playerMove({ x1, y1, x2, y2 });
                 lWin.setVisible(true);
             }
 
@@ -803,7 +835,7 @@ void TPvpForm::loading() {
 //                LP = false;
 //                LR = false;
 //
-//                mytype coord[4];
+//                uint8_t coord[4];
 //                board.getCoord(LPPos, LRPos, coord);
 //                sendMove(coord[0], coord[1], coord[2], coord[3]);
 //            }

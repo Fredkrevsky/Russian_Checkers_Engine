@@ -1,9 +1,9 @@
 #include "PossibleMoves.h"
 
-extern "C" void asmAdd(TAM&, mytype*, mytype, mytype, mytype, mytype);
-extern "C" void FillDamkaMoves(TField&, TAM&, mytype*, mytype, mytype);
+extern "C" void asmAdd(TAM&, uint8_t*, uint8_t, uint8_t, uint8_t, uint8_t);
+extern "C" void FillDamkaMoves(TField&, TAM&, uint8_t*, uint8_t, uint8_t);
 
-bool NTBDamkaOneMore(TField& field, mytype x, mytype y, bool turn, mytype mode) {
+bool NTBDamkaOneMore(TField& field, uint8_t x, uint8_t y, bool turn, uint8_t mode) {
 	if (NTBDamka(field, x, y, turn, mode)) {
 		return true;
 	}
@@ -46,8 +46,8 @@ bool NTBDamkaOneMore(TField& field, mytype x, mytype y, bool turn, mytype mode) 
 	return false;
 }
 
-void FillDamkaBeatsDiag(TField& field, bool turn, TAM& AllMoves, mytype* len, mytype x0, mytype y0, mytype x, mytype y, mytype mode) {
-	mytype temp = 1;
+void FillDamkaBeatsDiag(TField& field, bool turn, TAM& AllMoves, uint8_t* len, uint8_t x0, uint8_t y0, uint8_t x, uint8_t y, uint8_t mode) {
+	uint8_t temp = 1;
 	if (turn) {
 		temp = 2;
 	}
@@ -120,9 +120,10 @@ void FillDamkaBeatsDiag(TField& field, bool turn, TAM& AllMoves, mytype* len, my
 		}
 	}
 }	
-void FillDamkaBeatsForOne(TField& field, bool turn, TAM& AllMoves, mytype* len, mytype x, mytype y, mytype mode) {
-	mytype x0 = x;
-	mytype y0 = y;
+
+void FillDamkaBeatsForOne(TField& field, bool turn, TAM& AllMoves, uint8_t* len, uint8_t x, uint8_t y, uint8_t mode) {
+	uint8_t x0 = x;
+	uint8_t y0 = y;
 	if (mode != 1) {
 		FillDamkaBeatsDiag(field, turn, AllMoves, len, x0, y0, x, y, 4);
 	}
@@ -160,7 +161,8 @@ void FillDamkaBeatsForOne(TField& field, bool turn, TAM& AllMoves, mytype* len, 
 		}
 	}
 }
-void FillBeatsForOne(TField& field, bool turn, TAM& AllMoves, mytype* len, mytype x, mytype y) {
+
+void FillBeatsForOne(TField& field, bool turn, TAM& AllMoves, uint8_t* len, uint8_t x, uint8_t y) {
 	if (SBCheck(field, x, y, x + 2, y + 2, turn)) {
 		asmAdd(AllMoves, len, x, y, x + 2, y + 2);
 	}
@@ -174,13 +176,14 @@ void FillBeatsForOne(TField& field, bool turn, TAM& AllMoves, mytype* len, mytyp
 		asmAdd(AllMoves, len, x, y, x - 2, y - 2);
 	}
 }
-bool FillMoves(TField& field, bool turn, TAM& AllMoves, mytype* len) {
-	mytype temp = 2;
+
+bool FillMoves(TField& field, bool turn, TAM& AllMoves, uint8_t* len) {
+	uint8_t temp = 2;
 	if (turn) {
 		temp = 1;
 	}
-	for (mytype i = 0; i < 8; ++i) {
-		for (mytype j = 0; j < 8; ++j) {
+	for (uint8_t i = 0; i < 8; ++i) {
+		for (uint8_t j = 0; j < 8; ++j) {
 			if (field[i][j] == temp){
 				FillBeatsForOne(field, turn, AllMoves, len, i, j);
 			}
@@ -193,12 +196,12 @@ bool FillMoves(TField& field, bool turn, TAM& AllMoves, mytype* len) {
 	if (*len != 0) {
 		return true;
 	}
-	mytype dy = -1;
+	uint8_t dy = -1;
 	if (turn) {
 		dy = 1;
 	}
-	for (mytype x = 0; x < 8; ++x) {
-		for (mytype y = 0; y < 8; ++y) {
+	for (uint8_t x = 0; x < 8; ++x) {
+		for (uint8_t y = 0; y < 8; ++y) {
 			if (field[x][y] == temp) {
 				if (SMCheck(field, x, y, x + 1, y + dy)) {
 					asmAdd(AllMoves, len, x, y, x + 1, y + dy);
@@ -215,7 +218,7 @@ bool FillMoves(TField& field, bool turn, TAM& AllMoves, mytype* len) {
 	return false;
 }
 
-bool PMFill(TField& field, MOVE_TYPE type, TAM& AllMoves, mytype* len, bool turn, mytype x, mytype y, mytype vector) {
+bool PMFill(TField& field, MOVE_TYPE type, TAM& AllMoves, uint8_t* len, bool turn, uint8_t x, uint8_t y, uint8_t vector) {
 	if (type) {
 		if (field[x][y] >= 3) {
 			FillDamkaBeatsForOne(field, turn, AllMoves, len, x, y, vector);
